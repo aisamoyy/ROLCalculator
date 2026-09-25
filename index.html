@@ -1,0 +1,3635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Ragnarok Damage Calculator</title>
+
+<style>
+
+:root{
+  --bg:#0f1116;
+  --panel:#181b22;
+  --panel2:#20242d;
+  --text:#e6e9ef;
+  --muted:#8a93a3;
+  --accent:#ffb84d;
+  --border:#2a2f3a;
+  --radius:10px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  padding:24px;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,sans-serif;
+}
+
+header{
+  max-width:1200px;
+  margin:0 auto 24px;
+}
+
+.reload-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  background:var(--panel2);
+  border:1px solid var(--border);
+  color:var(--accent);
+  border-radius:6px;
+  padding:8px 14px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn:hover{
+  border-color:var(--accent);
+}
+
+.btn:disabled{
+  opacity:.5;
+  cursor:default;
+}
+
+.reload-status{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.grid{
+  max-width:1200px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+
+@media(max-width:900px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+}
+
+.panel h2{
+  margin:0 0 14px;
+  font-size:15px;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 14px;
+  align-items:center;
+}
+
+.row label{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.row input,
+.row select{
+  width:100%;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:6px;
+  padding:8px 10px;
+}
+
+.out{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;
+}
+
+.card{
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px;
+}
+
+.lbl{
+  color:var(--muted);
+  font-size:12px;
+  text-transform:uppercase;
+}
+
+.val{
+  font-size:28px;
+  font-weight:700;
+  margin-top:4px;
+}
+
+.sub{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:4px;
+}
+
+.formula{
+  margin-top:16px;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.6;
+  font-family:ui-monospace,monospace;
+}
+
+.full{
+  grid-column:1 / -1;
+}
+
+.row select{
+  cursor:pointer;
+}
+
+.row input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  padding:0;
+  cursor:pointer;
+  accent-color:var(--accent);
+  justify-self:start;
+}
+
+.radio-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.radio-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:8px 14px;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.radio-option input{
+  margin:0;
+  accent-color:var(--accent);
+  cursor:pointer;
+}
+
+.subhead{
+  margin:16px 0 10px;
+  font-size:13px;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+
+/* equipment grid: [slot] [item] [tier] [refine] */
+.eq-grid{
+  display:grid;
+  grid-template-columns:1.2fr 2.2fr 0.9fr 0.7fr;
+  gap:8px 12px;
+  align-items:center;
+}
+
+.eq-grid label{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.eq-grid select,
+.eq-grid input{
+  width:100%;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:6px;
+  padding:8px 10px;
+}
+
+.eq-grid select{ cursor:pointer; }
+
+.eq-header{
+  color:var(--accent);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  font-weight:600;
+}
+
+@media(max-width:700px){
+  .eq-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  .eq-header:nth-child(3),
+  .eq-header:nth-child(4){ display:none; }
+}
+
+</style>
+
+<script src="items.js"></script>
+
+</head>
+
+<body>
+
+<header>
+  <h1>Ragnarok Damage Calculator</h1>
+  <div class="reload-row">
+    <button id="reloadDataBtn" class="btn" type="button">↻ Reload All CSV Data</button>
+    <span id="reloadDataStatus" class="reload-status">
+      Data auto-loads from the *.csv files on page load — this only works
+      when the page is served over http(s), not opened as a local file.
+    </span>
+  </div>
+</header>
+
+<div class="grid">
+
+<!-- EQUIPMENT -->
+<section class="panel full">
+
+  <h2>Equipment</h2>
+
+  <h3 class="subhead">1. Upper Headgear <span style="opacity:.5">(item with enchant)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqHeadU"></select>
+    <label>Card</label>
+    <select id="cardHeadU"></select>
+    <label>Enchant</label>
+    <select id="enchHeadU"></select>
+  </div>
+
+  <h3 class="subhead">2. Middle Headgear</h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqHeadM"></select>
+  </div>
+
+  <h3 class="subhead">3. Lower Headgear</h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqHeadL"></select>
+  </div>
+
+  <h3 class="subhead">4. Weapon <span style="opacity:.5">(enchant slot 3, 4)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqWeapon"></select>
+    <label>Card</label>
+    <select id="cardWeapon"></select>
+    <label>Tier</label>
+    <select id="eqWeapon_tier">
+      <option value="">— None —</option>
+      <option value="D">D Tier</option>
+      <option value="C">C Tier</option>
+      <option value="B">B Tier</option>
+      <option value="A">A Tier</option>
+    </select>
+    <label>Refine</label>
+    <input id="eqWeapon_ref" type="number" min="0" max="15" value="0">
+    <label>Offhand / Shield</label>
+    <select id="eqOffhand"></select>
+    <label>Offhand Tier</label>
+    <select id="eqOffhand_tier">
+      <option value="">— None —</option>
+      <option value="D">D Tier</option>
+      <option value="C">C Tier</option>
+      <option value="B">B Tier</option>
+      <option value="A">A Tier</option>
+    </select>
+    <label>Offhand Refine</label>
+    <input id="eqOffhand_ref" type="number" min="0" max="15" value="0">
+    <label>Enchant Slot 3</label>
+    <select id="enchWeapon3"></select>
+    <label>Enchant Slot 4</label>
+    <select id="enchWeapon4"></select>
+  </div>
+
+  <h3 class="subhead">5. Armor <span style="opacity:.5">(enchant slot 3, 4)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqArmor"></select>
+    <label>Card</label>
+    <select id="cardArmor"></select>
+    <label>Enchant Slot 3</label>
+    <select id="enchArmor3"></select>
+    <label>Enchant Slot 4</label>
+    <select id="enchArmor4"></select>
+  </div>
+
+  <h3 class="subhead">6. Garment <span style="opacity:.5">(enchant slot 2, 3, 4)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqGarment"></select>
+    <label>Card</label>
+    <select id="cardGarment"></select>
+    <label>Enchant Slot 2</label>
+    <select id="enchGarment2"></select>
+    <label>Enchant Slot 3</label>
+    <select id="enchGarment3"></select>
+    <label>Enchant Slot 4</label>
+    <select id="enchGarment4"></select>
+  </div>
+
+  <h3 class="subhead">7. Footgear <span style="opacity:.5">(enchant slot 2, 3, 4)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqShoes"></select>
+    <label>Card</label>
+    <select id="cardShoes"></select>
+    <label>Enchant Slot 2</label>
+    <select id="enchFootgear2"></select>
+    <label>Enchant Slot 3</label>
+    <select id="enchFootgear3"></select>
+    <label>Enchant Slot 4</label>
+    <select id="enchFootgear4"></select>
+  </div>
+
+  <h3 class="subhead">8. Left Accessory <span style="opacity:.5">(enchant slot 2, 3, 4)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqAcc2"></select>
+    <label>Card</label>
+    <select id="cardAccL"></select>
+    <label>Enchant Slot 2</label>
+    <select id="enchAccL2"></select>
+    <label>Enchant Slot 3</label>
+    <select id="enchAccL3"></select>
+    <label>Enchant Slot 4</label>
+    <select id="enchAccL4"></select>
+  </div>
+
+  <h3 class="subhead">9. Right Accessory <span style="opacity:.5">(enchant slot 2, 3, 4)</span></h3>
+  <div class="row">
+    <label>Item</label>
+    <select id="eqAcc1"></select>
+    <label>Card</label>
+    <select id="cardAccR"></select>
+    <label>Enchant Slot 2</label>
+    <select id="enchAccR2"></select>
+    <label>Enchant Slot 3</label>
+    <select id="enchAccR3"></select>
+    <label>Enchant Slot 4</label>
+    <select id="enchAccR4"></select>
+  </div>
+
+  <h3 class="subhead">10. Shadow Equipment</h3>
+  <div class="row">
+    <label>Weapon</label>
+    <select id="eqShadowWeapon"></select>
+    <label>Armor</label>
+    <select id="eqShadowArmor"></select>
+    <label>Shield</label>
+    <select id="eqShadowShield"></select>
+    <label>Shoes</label>
+    <select id="eqShadowShoes"></select>
+  </div>
+
+  <h3 class="subhead">11. Costume</h3>
+  <div class="row">
+    <label>Upper</label>
+    <select id="eqCostumeU"></select>
+    <label>Middle</label>
+    <select id="eqCostumeM"></select>
+    <label>Lower</label>
+    <select id="eqCostumeL"></select>
+    <label>Garment</label>
+    <select id="eqCostumeG"></select>
+  </div>
+
+  <h3 class="subhead">12. Talisman</h3>
+  <div class="row">
+    <label>Enchant</label>
+    <select id="enchTalisman"></select>
+  </div>
+
+  <div class="formula" id="eqSummary">No equipment bonuses.</div>
+
+</section>
+
+
+
+<!-- COLLECTION -->
+<section class="panel">
+
+<h2>Collection</h2>
+
+<h3 class="subhead">Collection Items</h3>
+
+<div class="reload-row">
+  <button id="collectionTickAllBtn" class="btn" type="button">Tick All</button>
+  <button id="collectionUntickAllBtn" class="btn" type="button">Untick All</button>
+</div>
+
+<div class="row" id="collectionItemRow">
+  <!-- gem/card/costume collection checkboxes injected from collection.csv, multi-select -->
+</div>
+
+<h3 class="subhead">Collection Items Result</h3>
+
+<div class="formula" id="collectionItemsSummary">No collection items ticked.</div>
+
+</section>
+
+<!-- PET -->
+<section class="panel">
+
+<h2>Pet</h2>
+
+<h3 class="subhead">Pet Items</h3>
+
+<div class="row">
+  <label>Pet</label>
+  <select id="petSelect">
+    <!-- options injected from pet.csv — choose one, or "— None —" -->
+  </select>
+</div>
+
+<h3 class="subhead">Pet Items Result</h3>
+
+<div class="formula" id="petItemsSummary">No pet selected.</div>
+
+</section>
+
+<!-- STATS -->
+<section class="panel">
+
+<h2>Stats</h2>
+
+<div class="row">
+
+<label>Base Level</label>
+<input id="baseLvl" type="number" value="99">
+
+<label>STR</label>
+<input id="str" type="number" value="120">
+
+<label>DEX</label>
+<input id="dex" type="number" value="80">
+
+<label>LUK</label>
+<input id="luk" type="number" value="50">
+
+<label>AGI</label>
+<input id="agi" type="number" value="0">
+
+<label>VIT</label>
+<input id="vit" type="number" value="0">
+
+<!-- Weapon ATK / Refinement / Mastery removed from the Stats panel.
+     Kept as hidden inputs so the damage formula still reads them:
+     wAtk + refine are auto-synced from the equipped weapon, mastery = 0. -->
+<input id="wAtk" type="hidden" value="0">
+<input id="refine" type="hidden" value="0">
+<input id="mastery" type="hidden" value="0">
+
+</div>
+
+</section>
+<!-- PET -->
+<section class="panel">
+
+<h2>Total Result</h2>
+<div class="out">
+
+  <div class="card">
+    <div class="lbl">Status ATK</div>
+    <div class="val" id="totalstatusATK">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Equip ATK</div>
+    <div class="val" id="totalequipATK">0</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">ATK%</div>
+    <div class="val" id="totalATKpercent">0</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">ATK Melee%</div>
+    <div class="val" id="totalMelee">0</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">ATK Range%</div>
+    <div class="val" id="totalRange">0</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Race (demi)%</div>
+    <div class="val" id="totalRaceDemi">0</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Race (non-demi)%</div>
+    <div class="val" id="totalRaceNonDemi">0</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Mid size %</div>
+    <div class="val" id="totalMid">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">ATK Type %</div>
+    <div class="val" id="totalType">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">ATK Boss%</div>
+    <div class="val" id="totalBoss">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">ATK Neutral</div>
+    <div class="val" id="totalAtkNeutral">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Cri%</div>
+    <div class="val" id="totalCritDMG">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Cri rate</div>
+    <div class="val" id="totalCriRate">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Hit Phy%</div>
+    <div class="val" id="totalHitphy">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Perfect HIT</div>
+    <div class="val" id="totalPerfectHit">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Delay</div>
+    <div class="val" id="totalDelay">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">FCT</div>
+    <div class="val" id="totalFCT">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Skill Mod.</div>
+    <div class="val" id="totalSkillModStat">0</div>
+    <div class="sub" id="totalSkillModNames"></div>
+  </div>
+  <div class="card">
+    <div class="lbl">CD Reduction</div>
+    <div class="val" id="totalCdReduction">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Demi Resist</div>
+    <div class="val" id="totalDemiResist">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Mid Resist</div>
+    <div class="val" id="totalMidResist">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Neural Resist</div>
+    <div class="val" id="totalNeutralResist">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Range Resist</div>
+    <div class="val" id="totalRangeResist">0</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Max HP%</div>
+    <div class="val" id="totalMaxHpPct">0</div>
+  </div>
+</div>
+</section>
+
+<!-- SKILL -->
+<section class="panel">
+
+<h2>Skill</h2>
+
+<div class="radio-row" style="margin-bottom:12px">
+
+  <label class="radio-option">
+    <input type="radio" name="mode" id="mode_pve" checked>
+    <span>PvE</span>
+  </label>
+
+  <label class="radio-option">
+    <input type="radio" name="mode" id="mode_woe">
+    <span>WoE</span>
+  </label>
+
+</div>
+
+<div class="row">
+
+<label>Skill</label>
+
+<select id="skillSelect"></select>
+
+<label>Hits</label>
+<input id="hits" type="number" value="1">
+
+<label>Element</label>
+<select id="element">
+  <option value="2">Strong ×2</option>
+  <option value="1.5">Effective ×1.5</option>
+  <option value="1" selected>Neutral ×1</option>
+  <option value="0.5">Resisted ×0.5</option>
+</select>
+
+<label>Size</label>
+<select id="size">
+  <option value="1" selected>Normal</option>
+  <option value="0.75">0.75</option>
+  <option value="1.25">1.25</option>
+</select>
+
+<label>Race</label>
+<select id="race">
+  <option value="1" selected>1.0</option>
+  <option value="1.1">1.1</option>
+  <option value="1.2">1.2</option>
+</select>
+
+<label>Card Bonus%</label>
+<input id="cardPct" type="number" value="0">
+
+</div>
+
+<div class="formula" id="skillFormula">Select a skill to view its formula.</div>
+
+</section>
+
+<!-- TARGET -->
+<section class="panel">
+
+<h2>Target</h2>
+
+<div class="row">
+
+<label>Hard DEF</label>
+<input id="hardDef" type="number" value="50">
+
+<label>Soft DEF</label>
+<input id="softDef" type="number" value="20">
+
+<label>Damage Reduction%</label>
+<input id="dmgRed" type="number" value="0">
+
+<label>HP</label>
+<input id="hp" type="number" value="100000">
+
+</div>
+
+</section>
+
+<!-- RESULT -->
+<section class="panel">
+
+<h2>Damage Result</h2>
+
+<div class="out">
+
+<div class="card">
+<div class="lbl">Per Hit</div>
+<div class="val" id="oAvg">0</div>
+<div class="sub" id="oRange"></div>
+</div>
+
+<div class="card">
+<div class="lbl">Total Damage</div>
+<div class="val" id="oTotal">0</div>
+<div class="sub" id="oHits"></div>
+</div>
+
+<div class="card">
+<div class="lbl">Hits To Kill</div>
+<div class="val" id="oTtk">0</div>
+<div class="sub" id="oOverkill"></div>
+</div>
+
+</div>
+
+<div class="formula" id="formula"></div>
+
+</section>
+
+<!-- ROL TOTAL DAMAGE OUTPUT -->
+<section class="panel">
+
+<h2>ROL Total Damage</h2>
+
+<div class="row">
+
+<label>Base Damage</label>
+<input id="baseDmg" type="number" value="1000">
+
+</div>
+
+<div class="out">
+
+<div class="card">
+<div class="lbl">Melee + Hit Physical</div>
+<div class="val" id="oMeleeHit">0</div>
+</div>
+
+<div class="card">
+<div class="lbl">Melee + Critical</div>
+<div class="val" id="oMeleeCrit">0</div>
+</div>
+
+<div class="card">
+<div class="lbl">Range + Hit Physical</div>
+<div class="val" id="oRangeHit">0</div>
+</div>
+
+<div class="card">
+<div class="lbl">Range + Critical</div>
+<div class="val" id="oRangeCrit">0</div>
+</div>
+
+</div>
+
+<div class="formula" id="simpleFormula"></div>
+
+</section>
+
+</div>
+
+<script>
+
+(() => {
+
+const $ = id => document.getElementById(id);
+
+const EQ_SLOTS = [
+  "eqWeapon","eqOffhand",
+  "eqHeadU","eqHeadM","eqHeadL",
+  "eqArmor","eqGarment","eqShoes",
+  "eqAcc1","eqAcc2"
+];
+
+/* ── Shadow Equipment (10. Shadow Equipment) ── */
+const SHADOW_SLOTS = ["eqShadowWeapon","eqShadowArmor","eqShadowShield","eqShadowShoes"];
+const SHADOW_TYPE = {
+  eqShadowWeapon:"shadowWeapon", eqShadowArmor:"shadowArmor",
+  eqShadowShield:"shadowShield", eqShadowShoes:"shadowShoes"
+};
+const SHADOW_POS_MAP = { weapon:"shadowWeapon", armor:"shadowArmor", shield:"shadowShield", shoes:"shadowShoes" };
+
+/* ── Costume (11. Costume) ── */
+const COSTUME_SLOTS = ["eqCostumeU","eqCostumeM","eqCostumeL","eqCostumeG"];
+const COSTUME_TYPE = {
+  eqCostumeU:"costumeUpper", eqCostumeM:"costumeMid",
+  eqCostumeL:"costumeLow",  eqCostumeG:"costumeGarment"
+};
+const COSTUME_POS_MAP = { upper:"costumeUpper", middle:"costumeMid", lower:"costumeLow", garment:"costumeGarment" };
+
+/* ── Card sockets (12. Card) — one card box per equipment piece: Upper
+ * Headgear, Weapon, Armor, Garment, Footgear, Right Accessory, Left
+ * Accessory. Cards are loaded from card.csv using the exact same
+ * "Position" vocabulary as items.csv (positionToType()), so a single card
+ * (Position "armor") drops into one slot, and a combo card (Position
+ * "armor_garment") is directly selectable in either of its slots and
+ * locks/mirrors across both — the same mechanism syncHeadArmorCombo()
+ * uses for a headgear+armor combo item. */
+const CARD_SLOTS = [
+  "cardHeadU","cardWeapon","cardArmor",
+  "cardGarment","cardShoes","cardAccR","cardAccL"
+];
+const CARD_TYPE = {
+  cardHeadU:"headUpper", cardWeapon:"weapon", cardArmor:"armor",
+  cardGarment:"garment", cardShoes:"shoes",
+  cardAccR:"accessoryR", cardAccL:"accessoryL"
+};
+
+/* ── Per-item enchant sub-slots (embedded in slots 1, 4, 5, 6, 7, 8, 9) ──
+ * Each select maps to { pool: window[pool] key, key: normalized CSV slot key } */
+const ENCHANT_SELECTS = {
+  enchHeadU:     { pool:"ENCHANT_HEADGEAR",  key:"enchant_head" },
+  enchWeapon3:   { pool:"ENCHANT_WEAPON",    key:"slot3" },
+  enchWeapon4:   { pool:"ENCHANT_WEAPON",    key:"slot4" },
+  enchArmor3:    { pool:"ENCHANT_ARMOR",     key:"slot3" },
+  enchArmor4:    { pool:"ENCHANT_ARMOR",     key:"slot4" },
+  enchGarment2:  { pool:"ENCHANT_GARMENT",   key:"slot2" },
+  enchGarment3:  { pool:"ENCHANT_GARMENT",   key:"slot3" },
+  enchGarment4:  { pool:"ENCHANT_GARMENT",   key:"slot4" },
+  enchFootgear2: { pool:"ENCHANT_FOOTGEAR",  key:"slot2" },
+  enchFootgear3: { pool:"ENCHANT_FOOTGEAR",  key:"slot3" },
+  enchFootgear4: { pool:"ENCHANT_FOOTGEAR",  key:"slot4" },
+  enchAccL2:     { pool:"ENCHANT_ACCESSORY", key:"slot2" },
+  enchAccL3:     { pool:"ENCHANT_ACCESSORY", key:"slot3" },
+  enchAccL4:     { pool:"ENCHANT_ACCESSORY", key:"slot4" },
+  enchAccR2:     { pool:"ENCHANT_ACCESSORY", key:"slot2" },
+  enchAccR3:     { pool:"ENCHANT_ACCESSORY", key:"slot3" },
+  enchAccR4:     { pool:"ENCHANT_ACCESSORY", key:"slot4" },
+  enchTalisman:  { pool:"ENCHANT_TALISMAN",  key:"enchant_talisman" }
+};
+const ENCHANT_SELECT_IDS = Object.keys(ENCHANT_SELECTS);
+
+/* ── enchant slot groups (per physical equipment piece) ──
+ * Each group lists the select ids that share one piece's enchant slots.
+ * Grouped explicitly (not just by pool) so Left/Right Accessory — which
+ * share the same ENCHANT_ACCESSORY pool/options but are two separate
+ * physical items — never lock across each other. Used by
+ * syncEnchantCombo() below to lock a multi-slot enchant option (e.g.
+ * Champion Glory, enchant_footgear.csv Position "slot2_3_4" — the same
+ * row pushed into slot2/slot3/slot4 by expandEnchantSlotKeys()) across
+ * every slot it occupies, the same way locked Costume Sets / Equipment
+ * combo items work elsewhere in this page. */
+const ENCHANT_SLOT_GROUPS = [
+  ["enchWeapon3","enchWeapon4"],
+  ["enchArmor3","enchArmor4"],
+  ["enchGarment2","enchGarment3","enchGarment4"],
+  ["enchFootgear2","enchFootgear3","enchFootgear4"],
+  ["enchAccL2","enchAccL3","enchAccL4"],
+  ["enchAccR2","enchAccR3","enchAccR4"]
+];
+const ENCHANT_CSV_FILES = [
+  { file:"enchant_headgear.csv",  pool:"ENCHANT_HEADGEAR"  },
+  { file:"enchant_weapon.csv",    pool:"ENCHANT_WEAPON"    },
+  { file:"enchant_armor.csv",     pool:"ENCHANT_ARMOR"     },
+  { file:"enchant_garment.csv",   pool:"ENCHANT_GARMENT"   },
+  { file:"enchant_footgear.csv",  pool:"ENCHANT_FOOTGEAR"  },
+  { file:"enchant_accessory.csv", pool:"ENCHANT_ACCESSORY" },
+  { file:"enchant_talisman.csv",  pool:"ENCHANT_TALISMAN"  }
+];
+
+/* Tier + refinement only apply to weapon slots */
+const TIER_SLOTS = ["eqWeapon","eqOffhand"];
+
+/* Per-tier bonuses — all three scale with refinement level (× refine)
+ *   atkPctPerRef : ATK% added per refinement level
+ *   atk          : ATK added per refinement level
+ *   midSizePct   : Mid-size damage % added per refinement level
+ */
+const TIER_BONUS = {
+  D: { atkPctPerRef: 10,  atk: 2, midSizePct: 1 },
+  C: { atkPctPerRef: 30,  atk: 4, midSizePct: 2 },
+  B: { atkPctPerRef: 50,  atk: 6, midSizePct: 3 },
+  A: { atkPctPerRef: 100, atk: 8, midSizePct: 4 }
+};
+
+const ids = [
+  "baseLvl","str","dex","luk","agi","vit",
+  "wAtk","refine","mastery",
+  "atkPct","critPct","hitPhy",
+  "skillSelect","hits","element","size","race","cardPct",
+  "hardDef","softDef","dmgRed","hp",
+  "petSelect",
+  ...EQ_SLOTS,
+  ...TIER_SLOTS.map(s => s + "_tier"),
+  ...TIER_SLOTS.map(s => s + "_ref"),
+  ...SHADOW_SLOTS,
+  ...COSTUME_SLOTS,
+  ...CARD_SLOTS,
+  ...ENCHANT_SELECT_IDS,
+  "mode_pve","mode_woe",
+  "baseDmg"
+];
+
+/* ── Skill definitions ──
+ * Each skill carries separate PvE and WoE formulas.
+ *   mult       : base skill % (e.g. 400 means 400%)
+ *   scale      : stat scaling formula identifier
+ *   dmgMod     : extra damage multiplier (WoE typically 0.6 — 40% reduction)
+ *   desc       : human-readable description of the formula
+ */
+const SKILLS = {
+  normal: {
+    name:"Normal Attack",
+    pve:{ mult:100, scale:"none",            dmgMod:1.0,
+          desc:"100% ATK" },
+    woe:{ mult:100, scale:"none",            dmgMod:1.0,
+          desc:"100% ATK" }
+  },
+  bash: {
+    name:"Bash",
+    pve:{ mult:400, scale:"str",             dmgMod:1.0,
+          desc:"(400% + STR×2) ATK" },
+    woe:{ mult:300, scale:"str",             dmgMod:0.6,
+          desc:"(300% + STR×2) ATK × 0.6 (WoE reduction)" }
+  },
+  mammonite: {
+    name:"Mammonite",
+    pve:{ mult:500, scale:"str_level",       dmgMod:1.0,
+          desc:"(500% + STR×2 + Lv) ATK" },
+    woe:{ mult:350, scale:"str_level",       dmgMod:0.6,
+          desc:"(350% + STR×2 + Lv) ATK × 0.6 (WoE reduction)" }
+  },
+  sonic_blow: {
+    name:"Sonic Blow",
+    pve:{ mult:600, scale:"str_level",       dmgMod:1.0,
+          desc:"(600% + STR×2 + Lv) ATK" },
+    woe:{ mult:400, scale:"str_level",       dmgMod:0.6,
+          desc:"(400% + STR×2 + Lv) ATK × 0.6 (WoE reduction)" }
+  },
+  asura: {
+    name:"Asura Strike",
+    pve:{ mult:800, scale:"str_dex_level",   dmgMod:1.0,
+          desc:"(800% + STR×2 + DEX + Lv) ATK" },
+    woe:{ mult:500, scale:"str_dex_level",   dmgMod:0.6,
+          desc:"(500% + STR×2 + DEX + Lv) ATK × 0.6 (WoE reduction)" }
+  },
+  cart_termination: {
+    name:"Cart Termination",
+    pve:{ mult:1200, scale:"all_stats_level", dmgMod:1.0,
+          desc:"(1200% + STR + DEX + LUK + Lv) ATK" },
+    woe:{ mult:800,  scale:"all_stats_level", dmgMod:0.6,
+          desc:"(800% + STR + DEX + LUK + Lv) ATK × 0.6 (WoE reduction)" }
+  }
+};
+
+function getMode(){
+  return document.getElementById("mode_woe")?.checked ? "woe" : "pve";
+}
+
+function getActiveSkill(){
+  const sel = document.getElementById("skillSelect");
+  const key = sel ? sel.value : "normal";
+  const skill = SKILLS[key] || SKILLS.normal;
+  const data  = skill[getMode()];
+  return { key, name: skill.name, ...data };
+}
+
+function populateSkills(){
+  const sel = document.getElementById("skillSelect");
+  if(!sel) return;
+  sel.innerHTML = "";
+  Object.keys(SKILLS).forEach(key => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = SKILLS[key].name;
+    sel.appendChild(opt);
+  });
+}
+
+/* ── lightweight CSV parser (handles quoted multi-line cells) ── */
+function parseCSV(text){
+
+  const rows = [];
+  let row = [];
+  let cur = "";
+  let inQ = false;
+
+  for(let i=0; i<text.length; i++){
+
+    const c = text[i];
+
+    if(inQ){
+      if(c === '"' && text[i+1] === '"'){ cur += '"'; i++; }
+      else if(c === '"'){ inQ = false; }
+      else { cur += c; }
+    } else {
+      if(c === '"'){ inQ = true; }
+      else if(c === ','){ row.push(cur); cur = ""; }
+      else if(c === "\n"){ row.push(cur); rows.push(row); row = []; cur = ""; }
+      else if(c === "\r"){ /* skip */ }
+      else { cur += c; }
+    }
+  }
+
+  if(cur !== "" || row.length){ row.push(cur); rows.push(row); }
+
+  return rows;
+}
+
+/* map a CSV "Position" string → internal type or position array */
+function positionToType(raw){
+
+  const p = (raw||"").trim().toLowerCase().replace(/\s+/g,"_");
+
+  /* Middle_low / mid_low / midlow → occupies BOTH middle and lower */
+  if(p === "middle_low" || p === "mid_low" || p === "midlow"){
+    return { positions:["headMid","headLow"] };
+  }
+
+  const map = {
+    weapon:          "weapon",
+    upper:           "headUpper",
+    middle:          "headMid",
+    mid:             "headMid",
+    lower:           "headLow",
+    low:             "headLow",
+    armor:           "armor",
+    garment:         "garment",
+    shoes:           "shoes",
+    accessory:       "accessoryR",
+    accessory_right: "accessoryR",
+    accessory_left:  "accessoryL",
+    acc:             "accessoryR",
+    shield:          "shield",
+    offhand:         "shield"
+  };
+
+  if(map[p]) return { type: map[p] };
+
+  /* generic multi-slot combo item (e.g. "upper_armor") — occupies every
+   * listed slot at once, mirroring the middle_low special-case above */
+  const tokens = p.split("_").filter(Boolean);
+  if(tokens.length > 1){
+    const types = [...new Set(tokens.map(t => map[t]).filter(Boolean))];
+    if(types.length > 1) return { positions: types };
+    if(types.length === 1) return { type: types[0] };
+  }
+
+  return null;
+}
+
+/* ── load items live from items.csv ── */
+async function loadItemsCSV(){
+
+  try {
+
+    const res = await fetch("items.csv");
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+
+    /* locate header row */
+    const hdrIdx = rows.findIndex(r =>
+      r.some(c => /^name$/i.test((c||"").trim()))
+    );
+    if(hdrIdx < 0) return;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+
+    /* shared 21-stat column mapping (ATK through Range Resist) — same
+     * mapping used by the enchant/shadow/costume loaders below, so an
+     * equipment item and an enchant carry an identical set of fields. */
+    const idx = buildColIdx(headers);
+
+    const fresh = [];
+
+    for(let r = hdrIdx+1; r < rows.length; r++){
+
+      const row = rows[r];
+      const nm  = (row[idx.name]||"").trim();
+      if(!nm) continue;
+
+      const slot = positionToType(row[idx.position]);
+      if(!slot) continue;
+
+      const item = Object.assign({
+        id: "csv_" + nm.toLowerCase().replace(/[^a-z0-9]+/g,"_"),
+        name: nm,
+        note: "From items.csv"
+      }, rowToBonus(row, idx));
+
+      Object.assign(item, slot);
+      fresh.push(item);
+    }
+
+    if(!fresh.length) return;
+
+    /* drop every existing item except the "— None —" placeholders */
+    window.ITEMS = window.ITEMS.filter(i =>
+      typeof i.id === "string" && i.id.startsWith("none_")
+    );
+
+    window.ITEMS.push(...fresh);
+
+    /* clear and re-render every equipment dropdown */
+    EQ_SLOTS.forEach(id => {
+      const sel = document.getElementById(id);
+      if(sel) sel.innerHTML = "";
+    });
+
+    populateEquip();
+    calc();
+
+    console.log("items.csv loaded:", fresh.length, "items");
+
+  } catch(err) {
+    console.warn(
+      "items.csv not loaded at runtime (using embedded fallback).",
+      err.message
+    );
+  }
+}
+
+/* ── load cards live from card.csv ──
+ * Same shape/parsing as loadItemsCSV() above (same 21-stat schema, same
+ * Position → slot-type mapping via positionToType()), but stored
+ * separately in window.CARD_ITEMS so cards never show up as equippable
+ * "items" in the eqHeadU/eqWeapon/etc. dropdowns — only in their own
+ * Card boxes (CARD_SLOTS). A row whose Position spans two card slots
+ * (e.g. "armor_garment") becomes a combo item selectable in either slot,
+ * mirrored/locked by syncCardCombo(). */
+async function loadCardCSV(){
+
+  try {
+
+    const res = await fetch("card.csv");
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+
+    const hdrIdx = rows.findIndex(r =>
+      r.some(c => /^name$/i.test((c||"").trim()))
+    );
+    if(hdrIdx < 0) return;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+    const idx = buildColIdx(headers);
+
+    const fresh = [];
+
+    for(let r = hdrIdx+1; r < rows.length; r++){
+
+      const row = rows[r];
+      const nm  = (row[idx.name]||"").trim();
+      if(!nm) continue;
+
+      const slot = positionToType(row[idx.position]);
+      if(!slot) continue;
+
+      const item = Object.assign({
+        id: "card_" + nm.toLowerCase().replace(/[^a-z0-9]+/g,"_"),
+        name: nm,
+        note: "From card.csv"
+      }, rowToBonus(row, idx));
+
+      Object.assign(item, slot);
+      fresh.push(item);
+    }
+
+    if(!fresh.length) return;
+
+    /* drop every existing card except the "— None —" placeholders */
+    window.CARD_ITEMS = (window.CARD_ITEMS || []).filter(i =>
+      typeof i.id === "string" && i.id.startsWith("none_")
+    );
+
+    window.CARD_ITEMS.push(...fresh);
+
+    populateCardSelects();
+    calc();
+
+    console.log("card.csv loaded:", fresh.length, "cards");
+
+  } catch(err) {
+    console.warn(
+      "card.csv not loaded at runtime (using embedded fallback).",
+      err.message
+    );
+  }
+}
+
+/* ── shared CSV header-index helper ──
+ * Covers every stat column used across items.csv / enchant_*.csv /
+ * shadow.csv / costume.csv (the full 21-stat schema): ATK, ATK%, ATK Melee%,
+ * ATK Range%, Race(demi)%, Race(non-demi)%, Mid size%, ATK Type%, ATK Boss%,
+ * Cri%, Cri rate, Hit Phy%, Perfect HIT, Delay, FCT, Skill Mod., CD
+ * Reduction, Demi/Mid/Neutral/Range Resist. */
+function buildColIdx(headers){
+  const norm = s => (s||"").toLowerCase().replace(/[\s_.]/g,"");
+  const col = name => headers.findIndex(h => norm(h) === norm(name));
+  const colAny = (...names) => {
+    for(const n of names){ const i = col(n); if(i >= 0) return i; }
+    return -1;
+  };
+  return {
+    name:       col("name"),
+    position:   col("position"),
+    atk:        col("atk"),
+    atkPct:     col("atk%"),
+    meleePct:   col("atkmelee%"),
+    rangePct:   col("atkrange%"),
+    /* racePct can appear either as one combined "All Race %" column, or
+     * split across "Race (demi)%" / "Race (non-demi)%" (the latter format
+     * is what the enchant_*.csv / collection.csv files use) — sum whichever
+     * are present so a value in either format is never silently dropped. */
+    racePct:        colAny("allrace%","race%"),
+    racePctDemi:    col("race(demi)%"),
+    racePctNonDemi: col("race(non-demi)%"),
+    midSizePct: col("midsize%"),
+    typePct:    colAny("atktype%","type%"),
+    atkBossPct: col("atkboss%"),
+    atkNeutral: col("atkneutral"),
+    critPct:    col("cri%"),
+    criRate:    col("crirate"),
+    hitPhy:     colAny("hitphy%","hitphysical%"),
+    perfectHit: col("perfecthit"),
+    str:        col("str"),
+    dex:        col("dex"),
+    luk:        col("luk"),
+    delay:      col("delay"),
+    fct:        col("fct"),
+    skillMod:      col("skillmod"),
+    cdReduction:   col("cdreduction"),
+    demiResist:    col("demiresist"),
+    midResist:     col("midresist"),
+    neutralResist: colAny("neuralresist","neutralresist"),
+    rangeResist:   col("rangeresist"),
+    /* items.csv-only column — matches the "Max HP" alias already accepted
+     * inside Condition cells (see COND_FIELD_ALIAS's "maxhp" entry), which
+     * maps to the same maxHpPct field used everywhere else in the app. */
+    maxHpPct:      colAny("maxhp%","maxhp"),
+    /* items.csv / shadow.csv / costume.csv — the skill this row's Skill
+     * Mod. bonus applies to, e.g. "skill_counter_slash". Looked up against
+     * skills.csv (name,skill_id) to show a human-readable skill name next
+     * to the Skill Mod. total instead of a single blind summed number. */
+    skillId:       colAny("skill_id","skillid"),
+    /* optional — see parseConditionCell() below for the cell format */
+    condition:     colAny("condition","conditions")
+  };
+}
+
+function numCell(v){
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/* ── stat-threshold "Condition" cell parser ──
+ * Lets a CSV row grant an extra bonus only once a character stat crosses
+ * a threshold, e.g. "+5% ATK once STR is 120+". Cell format:
+ *
+ *   <stat><op><value>:<field>=<amount>[,<field>=<amount>...]
+ *
+ * Multiple conditions in one cell are separated by ";" and are each
+ * evaluated independently (not else-if), so several thresholds can stack.
+ * Examples:
+ *   "str>=120:atk%=5"
+ *   "str>=120:atk%=5;str>=150:atk%=10"
+ *   "dex>=100:cri%=3,critrate=3"
+ *   "str+dex>=200:atk%=10"   ← combined stats, joined with "+"
+ *
+ * <stat>  one of: str, dex, luk, agi, vit, lvl (or level/baselvl), refine
+ *         — or several of those joined with "+" (e.g. "str+dex"), whose
+ *         current values are summed before comparing.
+ * <op>    one of: >=  <=  >  <  =  (== also accepted)
+ * <field> any of the 21 stat columns (by the same flexible name used in
+ *         the CSV headers — "atk%", "atk melee%", "cri%", "hit phy%",
+ *         "cd reduction", etc.) or str/dex/luk. Do NOT target str/dex/luk
+ *         from a condition that itself checks str/dex/luk — those totals
+ *         are locked in before conditions are evaluated.
+ *
+ * A second cell form scales repeatedly instead of firing once — "for
+ * every 10 STR, +1% ATK Melee, capped at 20%":
+ *
+ *   "str/10:atkmelee%=1,cap=20"
+ *
+ * <stat>/<divisor>  — the payout is applied once per whole multiple of
+ * <divisor> the stat has reached (floor(stat / divisor) repetitions).
+ * <stat> may also be a "+"-joined combo here too (e.g. "str+dex/20").
+ * "cap"/"max" in the payout list (instead of a field name) caps the
+ * total for that clause's field(s) rather than being added itself. Mix
+ * threshold and scaling clauses freely in the same cell with ";". */
+const COND_STAT_ALIAS = {
+  str:"str", dex:"dex", luk:"luk", agi:"agi", vit:"vit",
+  lvl:"lvl", level:"lvl", baselvl:"lvl", baselevel:"lvl",
+  refine:"refine"
+};
+
+const COND_FIELD_ALIAS = {
+  atk:"atk", str:"str", dex:"dex", luk:"luk",
+  "atk%":"atkPct", atkpct:"atkPct",
+  "atkmelee%":"meleePct", meleepct:"meleePct",
+  "atkrange%":"rangePct", rangepct:"rangePct",
+  "allrace%":"racePct", "race%":"racePct", racepct:"racePct",
+  "race(demi)%":"racePctDemi", racedemipct:"racePctDemi",
+  "race(non-demi)%":"racePctNonDemi", racenondemipct:"racePctNonDemi",
+  "midsize%":"midSizePct", midsizepct:"midSizePct",
+  "atktype%":"typePct", "type%":"typePct", typepct:"typePct",
+  "atkboss%":"atkBossPct", "boss%":"atkBossPct", atkbosspct:"atkBossPct",
+  "cri%":"critPct", critpct:"critPct",
+  "crirate":"criRate",
+  "hitphy%":"hitPhy", "hitphysical%":"hitPhy", hitphypct:"hitPhy",
+  "perfecthit":"perfectHit",
+  delay:"delay", "delay%":"delay", fct:"fct",
+  "skillmod":"skillMod", "cdreduction":"cdReduction",
+  "demiresist":"demiResist", "midresist":"midResist",
+  "neutralresist":"neutralResist", "neuralresist":"neutralResist",
+  "rangeresist":"rangeResist",
+  "maxhp":"maxHpPct", "maxhp%":"maxHpPct", "hp%":"maxHpPct"
+};
+
+function normCondKey(s){
+  return (s||"").toString().trim().toLowerCase().replace(/[\s_.]/g,"");
+}
+
+/* resolve a "+"-joined stat expression (e.g. "str+dex") into the
+ * canonical "+"-joined key form (e.g. "str+dex" using canonical names),
+ * or null if any term doesn't resolve to a known condition stat. */
+function resolveCondStatExpr(raw){
+  const terms = raw.split("+").map(t => COND_STAT_ALIAS[normCondKey(t)]);
+  if(terms.some(t => !t)) return null;
+  return terms.join("+");
+}
+
+/* sum the current value of a (possibly "+"-joined) condition stat
+ * expression against ctx, e.g. "str+dex" → ctx.str + ctx.dex */
+function resolveCondStatVal(statExpr, ctx){
+  return statExpr.split("+").reduce((sum, k) => sum + (ctx[k]||0), 0);
+}
+
+function parseConditionCell(raw){
+  const s = (raw||"").toString().trim();
+  if(!s) return null;
+
+  const opMap = { ">=":"gte", "<=":"lte", ">":"gt", "<":"lt", "==":"eq", "=":"eq" };
+  const conditions = [];
+
+  s.split(";").forEach(clause => {
+    clause = clause.trim();
+    if(!clause) return;
+
+    const sepIdx = clause.indexOf(":");
+    if(sepIdx < 0) return;
+
+    const condPart    = clause.slice(0, sepIdx).trim();
+    const payoutPart  = clause.slice(sepIdx + 1).trim();
+
+    /* scaling form: "<stat[+stat...]>/<divisor>" — payout repeats once
+     * per whole <divisor> of the (possibly combined) stat, optionally
+     * capped via "cap="/"max=" */
+    const scaleMatch = condPart.match(/^([a-zA-Z]+(?:\s*\+\s*[a-zA-Z]+)*)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+    if(scaleMatch){
+      const statKey = resolveCondStatExpr(scaleMatch[1].replace(/\s+/g,""));
+      const per     = parseFloat(scaleMatch[2]);
+      if(!statKey || !per) return;
+
+      const cond = { stat: statKey, per };
+      let any = false;
+
+      payoutPart.split(",").forEach(pair => {
+        const eq = pair.indexOf("=");
+        if(eq < 0) return;
+        const rawKey = pair.slice(0, eq);
+        const val = parseFloat(pair.slice(eq + 1)) || 0;
+
+        if(/^(cap|max)$/.test(normCondKey(rawKey))){
+          cond.cap = val;
+          return;
+        }
+        const fieldKey = COND_FIELD_ALIAS[normCondKey(rawKey)];
+        if(!fieldKey) return;
+        cond[fieldKey] = val;
+        any = true;
+      });
+
+      if(any) conditions.push(cond);
+      return;
+    }
+
+    /* threshold form: "<stat[+stat...]><op><value>" — payout fires once,
+     * in full, as soon as the comparison holds. "str+dex>=200:atk%=10"
+     * checks the sum of STR and DEX against 200. */
+    const m = condPart.match(/^([a-zA-Z]+(?:\s*\+\s*[a-zA-Z]+)*)\s*(>=|<=|==|=|>|<)\s*(-?\d+(?:\.\d+)?)$/);
+    if(!m) return;
+
+    const statKey = resolveCondStatExpr(m[1].replace(/\s+/g,""));
+    const opKey   = opMap[m[2]];
+    if(!statKey || !opKey) return;
+
+    const cond = { stat: statKey, [opKey]: parseFloat(m[3]) };
+    let any = false;
+
+    payoutPart.split(",").forEach(pair => {
+      const eq = pair.indexOf("=");
+      if(eq < 0) return;
+      const fieldKey = COND_FIELD_ALIAS[normCondKey(pair.slice(0, eq))];
+      if(!fieldKey) return;
+      cond[fieldKey] = parseFloat(pair.slice(eq + 1)) || 0;
+      any = true;
+    });
+
+    if(any) conditions.push(cond);
+  });
+
+  return conditions.length ? conditions : null;
+}
+
+/* ── build a bonus object from a CSV row using buildColIdx() indices ── */
+function rowToBonus(row, idx){
+  return {
+    atk:        numCell(row[idx.atk]),
+    atkPct:     numCell(row[idx.atkPct]),
+    meleePct:   numCell(row[idx.meleePct]),
+    rangePct:   numCell(row[idx.rangePct]),
+    racePct:        numCell(row[idx.racePct]) + numCell(row[idx.racePctDemi]) + numCell(row[idx.racePctNonDemi]),
+    racePctDemi:    numCell(row[idx.racePctDemi]),
+    racePctNonDemi: numCell(row[idx.racePctNonDemi]),
+    midSizePct: numCell(row[idx.midSizePct]),
+    typePct:    numCell(row[idx.typePct]),
+    atkBossPct: numCell(row[idx.atkBossPct]),
+    atkNeutral: numCell(row[idx.atkNeutral]),
+    critPct:    numCell(row[idx.critPct]),
+    criRate:    numCell(row[idx.criRate]),
+    hitPhy:     numCell(row[idx.hitPhy]),
+    perfectHit: numCell(row[idx.perfectHit]),
+    skillMod:      numCell(row[idx.skillMod]),
+    cdReduction:   numCell(row[idx.cdReduction]),
+    demiResist:    numCell(row[idx.demiResist]),
+    midResist:     numCell(row[idx.midResist]),
+    neutralResist: numCell(row[idx.neutralResist]),
+    rangeResist:   numCell(row[idx.rangeResist]),
+    maxHpPct:      numCell(row[idx.maxHpPct]),
+    skillId:       (row[idx.skillId] || "").trim(),
+    str:        numCell(row[idx.str]),
+    dex:        numCell(row[idx.dex]),
+    luk:        numCell(row[idx.luk]),
+    delay:      numCell(row[idx.delay]),
+    fct:        numCell(row[idx.fct]),
+    conditions: parseConditionCell(row[idx.condition])
+  };
+}
+
+/* ── every stat tracked across the calculator's bonus aggregators
+ * (equipment, enchants, shadow, costume, collection items) — the full
+ * 21-stat schema shared by items.csv / enchant_*.csv / shadow.csv /
+ * costume.csv / collection.csv, plus STR/DEX/LUK. ── */
+const STAT_KEYS = [
+  "atk","str","dex","luk",
+  "atkPct","meleePct","rangePct",
+  "racePct","racePctDemi","racePctNonDemi",
+  "midSizePct","typePct","atkBossPct","atkNeutral",
+  "critPct","criRate","hitPhy","perfectHit",
+  "delay","fct","skillMod","cdReduction",
+  "demiResist","midResist","neutralResist","rangeResist",
+  "maxHpPct"
+];
+
+function newBonus(){
+  const b = { pieces:[] };
+  STAT_KEYS.forEach(k => b[k] = 0);
+  return b;
+}
+
+/* human-readable labels for every stat, matching the CSV column names —
+ * used to render per-piece / totals breakdowns (see eqSummary and
+ * collectionItemsSummary). racePct itself is a combined helper field
+ * (used by the damage formula) so it's excluded here in favor of showing
+ * the demi/non-demi split that's actually in the source data. */
+const STAT_LABELS = {
+  atk:"ATK", str:"STR", dex:"DEX", luk:"LUK",
+  atkPct:"ATK%", meleePct:"ATK Melee%", rangePct:"ATK Range%",
+  racePctDemi:"Race (demi)%", racePctNonDemi:"Race (non-demi)%",
+  midSizePct:"Mid size %", typePct:"ATK Type %", atkBossPct:"ATK Boss%", atkNeutral:"ATK Neutral",
+  critPct:"Cri%", criRate:"Cri rate", hitPhy:"Hit Phy%", perfectHit:"Perfect HIT",
+  delay:"Delay", fct:"FCT", skillMod:"Skill Mod.", cdReduction:"CD Reduction",
+  demiResist:"Demi Resist", midResist:"Mid Resist", neutralResist:"Neural Resist",
+  rangeResist:"Range Resist", maxHpPct:"Max HP%"
+};
+const STAT_DISPLAY_KEYS = STAT_KEYS.filter(k => k !== "racePct");
+
+function describeBits(p){
+  const bits = [];
+  STAT_DISPLAY_KEYS.forEach(k => {
+    if(p[k]) bits.push(`${STAT_LABELS[k]} +${round2(p[k])}`);
+  });
+  return bits;
+}
+
+function addBonus(bonus, src){
+  if(!src) return;
+  STAT_KEYS.forEach(k => { bonus[k] = (bonus[k]||0) + (src[k]||0); });
+}
+
+/* ── conditional (stat-threshold) item bonuses ──
+ * Any item — in items.js, collection.csv-derived entries, enchants,
+ * shadow/costume pieces, etc. — can carry a `conditions` array. Each
+ * entry is a small object: one comparison key (gte/lte/gt/lt/eq) against
+ * a character stat, plus whichever STAT_KEYS fields should be granted
+ * when that comparison holds. Example — "+5% ATK if STR is 120 or more":
+ *
+ *   { "stat":"str", "gte":120, "atkPct":5 }
+ *
+ * Multiple conditions can be listed; each is evaluated independently
+ * (not else-if), so stacked thresholds like "gte:100" and "gte:150" both
+ * fire once the higher one is met. Supported `stat` values are whatever
+ * is present in the ctx passed to getConditionalBonus() — currently
+ * "str", "dex", "luk", "agi", "vit", "lvl", "refine" (AGI/VIT only have
+ * their own Stats-panel inputs — no gear currently grants them, they
+ * exist solely so conditions can check them). Do not target str/dex/luk in the
+ * payout of a condition that itself checks str/dex/luk — those totals
+ * are locked in before conditions are evaluated, so it won't feed back
+ * into the threshold check and the extra stat point would be dropped.
+ *
+ * A condition can instead carry a `per` field — "for every <per> points
+ * of <stat>, grant each payout field once, floor-divided, optionally
+ * capped by a `cap` field" (see parseConditionCell() for the matching
+ * "str/10:atkmelee%=1,cap=20" cell syntax). Example object form —
+ * "+1% ATK Melee per 10 STR, capped at +20%":
+ *
+ *   { "stat":"str", "per":10, "meleePct":1, "cap":20 }
+ *
+ * `stat` can also be a "+"-joined combo, e.g. "str+dex" — its value is
+ * the sum of those stats, letting a cell read "str+dex>=200:atk%=10". */
+function evalConditions(item, ctx){
+  const extra = newBonus();
+  if(!item || !Array.isArray(item.conditions)) return extra;
+
+  item.conditions.forEach(cond => {
+    const val = resolveCondStatVal(cond.stat, ctx);
+
+    if(cond.per !== undefined){
+      if(cond.per <= 0) return;
+      const steps = Math.floor(val / cond.per);
+      if(steps <= 0) return;
+
+      Object.keys(cond).forEach(k => {
+        if(k === "stat" || k === "per" || k === "cap") return;
+        const raw = steps * cond[k];
+        extra[k] = (extra[k]||0) + (cond.cap !== undefined ? Math.min(cond.cap, raw) : raw);
+      });
+      return;
+    }
+
+    let pass = true;
+    if(cond.gte !== undefined) pass = pass && val >= cond.gte;
+    if(cond.lte !== undefined) pass = pass && val <= cond.lte;
+    if(cond.gt  !== undefined) pass = pass && val >  cond.gt;
+    if(cond.lt  !== undefined) pass = pass && val <  cond.lt;
+    if(cond.eq  !== undefined) pass = pass && val === cond.eq;
+
+    if(pass) addBonus(extra, cond);
+  });
+
+  return extra;
+}
+
+/* sweep every currently-equipped piece across all bonus sources and sum
+ * up whichever conditional bonuses are satisfied right now */
+function getConditionalBonus(ctx, sources){
+  const extra = newBonus();
+  sources.forEach(src => {
+    (src && src.pieces || []).forEach(piece => {
+      addBonus(extra, evalConditions(piece, ctx));
+    });
+  });
+  return extra;
+}
+
+/* ── generic loader for the 6 per-slot enchant pools ──
+ * Each CSV row's "Position" column (e.g. "slot 3", "slot3", "enchant_head")
+ * is normalized (lowercase, spaces stripped) into a slot key. Results are
+ * stored as window[poolName] = { slotKey: [enchant, ...] }. */
+/* "slot2_3_4" (or "slot 2, 3, 4"-style variants) means the same enchant
+ * option is offered in every one of those slots at once — expand it into
+ * ["slot2","slot3","slot4"]. Anything else (e.g. "enchant_head",
+ * "enchant_talisman") is returned as a single-element array unchanged. */
+function expandEnchantSlotKeys(raw){
+  const p = (raw||"").trim().toLowerCase().replace(/\s+/g,"");
+  if(/^slot[\d_]+$/.test(p)){
+    const nums = p.match(/\d+/g) || [];
+    return nums.map(n => "slot" + n);
+  }
+  return p ? [p] : [];
+}
+
+async function loadEnchantGroupCSV(file, poolName){
+  try {
+    const res = await fetch(file);
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+    const hdrIdx = rows.findIndex(r => r.some(c => /^name$/i.test((c||"").trim())));
+    if(hdrIdx < 0) return null;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+    const idx = buildColIdx(headers);
+
+    const bySlot = {};
+
+    for(let r = hdrIdx+1; r < rows.length; r++){
+      const row = rows[r];
+      const nm  = (row[idx.name]||"").trim();
+      if(!nm) continue;
+
+      const slotKeys = expandEnchantSlotKeys(row[idx.position]);
+      if(!slotKeys.length) continue;
+
+      /* row index baked into the id so duplicate names in the same slot
+       * (e.g. a copy/paste typo) don't collide and become unselectable */
+      const item = Object.assign({
+        id: poolName + "_" + slotKeys.join("-") + "_" + r + "_" + nm.toLowerCase().replace(/[^a-z0-9]+/g,"_"),
+        name: nm
+      }, rowToBonus(row, idx));
+
+      slotKeys.forEach(slotKey => {
+        (bySlot[slotKey] = bySlot[slotKey] || []).push(item);
+      });
+    }
+
+    window[poolName] = bySlot;
+    return bySlot;
+
+  } catch(err) {
+    console.warn(file + " not loaded:", err.message);
+    return null;
+  }
+}
+
+async function loadAllEnchantGroups(){
+  await Promise.all(ENCHANT_CSV_FILES.map(g => loadEnchantGroupCSV(g.file, g.pool)));
+  populateEnchantSelects();
+  calc();
+}
+
+/* ── populate the 16 inline per-item enchant dropdowns ── */
+function populateEnchantSelects(){
+  ENCHANT_SELECT_IDS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+
+    const cfg  = ENCHANT_SELECTS[id];
+    const pool = window[cfg.pool] || {};
+    const list = pool[cfg.key] || [];
+
+    sel.innerHTML = "";
+    const noneOpt = document.createElement("option");
+    noneOpt.value = "none";
+    noneOpt.textContent = "— None —";
+    sel.appendChild(noneOpt);
+
+    list.forEach(enc => {
+      const opt = document.createElement("option");
+      opt.value = enc.id;
+      opt.textContent = enc.name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+/* ── aggregate bonuses from every inline enchant sub-slot ── */
+/* dedupe by id so a multi-slot enchant option (e.g. Champion Glory in
+ * enchant_footgear.csv, Position "slot2_3_4" — the only option offered in
+ * all 3 footgear enchant dropdowns) counts once no matter how many of
+ * those dropdowns it's picked in, instead of stacking once per slot.
+ * Same pattern as getEquipBonus()'s dedup for locked multi-slot items. */
+function getEnchantSelectBonus(){
+  const bonus = newBonus();
+  const seen = new Set();
+
+  ENCHANT_SELECT_IDS.forEach(id => {
+    const sel = $(id);
+    if(!sel || sel.value === "none" || !sel.value) return;
+
+    const cfg  = ENCHANT_SELECTS[id];
+    const pool = window[cfg.pool] || {};
+    const list = pool[cfg.key] || [];
+    const enc  = list.find(e => e.id === sel.value);
+    if(!enc) return;
+
+    if(seen.has(enc.id)) return;
+    seen.add(enc.id);
+
+    addBonus(bonus, enc);
+    bonus.pieces.push({ ...enc, slot:id });
+  });
+
+  return bonus;
+}
+
+/* ── Shadow Equipment + Costume: shared family/combo loader ──
+ * posMap: { csvToken: internalSlotType }. Rows whose Position resolves to
+ * exactly one token become directly selectable items.
+ *
+ * Rows resolving to more than one token (e.g. "upper_middle_lower") always
+ * become an auto-applied combo bonus — it fires whenever every listed slot
+ * independently holds an equipped item of matching family, whether that's
+ * because the player hand-picked the matching individual pieces (e.g. "Hit
+ * Physical Upper" + "...Middle" + "...Lower") or because they picked the
+ * Set item directly.
+ *
+ * comboMode "select" (used by Costume and Shadow Equipment) additionally
+ * registers the same row as a directly selectable item, like an Equipment
+ * combo item (e.g. "Spider Seduction + Upgrade Hero"): it appears as an
+ * option in every slot it occupies and is locked/mirrored across those
+ * slots by syncCostumeCombo() / syncShadowCombo(). getCostumeBonus() /
+ * getShadowBonus() dedupe so picking the combo item directly counts its
+ * bonus once, not once-per-slot-plus-the-auto-combo — this also means a
+ * combo like "+10 Slash Weapon+Armor+Shoes" is always directly reachable
+ * even if no standalone piece exists anymore for one of its slots (auto-
+ * detect alone would otherwise make it unreachable in that case). */
+async function loadFamilyComboCSV(file, posMap, itemsWindowKey, combosWindowKey, comboMode = "auto"){
+  try {
+    const res = await fetch(file);
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+    const hdrIdx = rows.findIndex(r => r.some(c => /^name$/i.test((c||"").trim())));
+    if(hdrIdx < 0) return null;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+    const idx = buildColIdx(headers);
+
+    const items = window[itemsWindowKey].filter(i =>
+      typeof i.id === "string" && i.id.startsWith("none_")
+    );
+    const combos = [];
+
+    for(let r = hdrIdx+1; r < rows.length; r++){
+      const row = rows[r];
+      const nm  = (row[idx.name]||"").trim();
+      if(!nm) continue;
+
+      const tokens = (row[idx.position]||"").trim().toLowerCase().split(/[_\s]+/).filter(Boolean);
+      const positions = tokens.map(t => posMap[t]).filter(Boolean);
+      if(!positions.length) continue;
+
+      const family = window.itemFamily(nm);
+      const bonus  = rowToBonus(row, idx);
+      const base   = {
+        id: itemsWindowKey + "_" + positions.join("_") + "_" + nm.toLowerCase().replace(/[^a-z0-9]+/g,"_"),
+        name: nm,
+        family,
+        note: file
+      };
+
+      if(positions.length === 1){
+        items.push(Object.assign(base, { type: positions[0] }, bonus));
+      } else {
+        if(comboMode === "select"){
+          items.push(Object.assign(base, { positions }, bonus));
+        }
+        combos.push(Object.assign(base, { positions }, bonus));
+      }
+    }
+
+    window[itemsWindowKey]  = items;
+    window[combosWindowKey] = combos;
+
+    return { items, combos };
+
+  } catch(err) {
+    console.warn(file + " not loaded:", err.message);
+    return null;
+  }
+}
+
+/* ── populate the 4 shadow-equipment dropdowns ── */
+/* Includes both single-slot items (i.type === slot) and multi-slot combo
+ * items (i.positions includes slot) — the latter are locked across their
+ * slots by syncShadowCombo(), same as populateCostumeSelects(). */
+function populateShadowSelects(){
+  SHADOW_SLOTS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+    const type = SHADOW_TYPE[id];
+    sel.innerHTML = "";
+    (window.SHADOW_ITEMS || [])
+      .filter(i => i.type === type || (Array.isArray(i.positions) && i.positions.includes(type)))
+      .forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.name;
+        sel.appendChild(opt);
+      });
+  });
+}
+
+/* ── populate the 4 costume dropdowns ──
+ * Includes both single-slot items (i.type === slot) and multi-slot combo
+ * items (i.positions includes slot) — the latter are locked across their
+ * slots by syncCostumeCombo() once selected. */
+function populateCostumeSelects(){
+  COSTUME_SLOTS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+    const type = COSTUME_TYPE[id];
+    sel.innerHTML = "";
+    (window.COSTUME_ITEMS || [])
+      .filter(i => i.type === type || (Array.isArray(i.positions) && i.positions.includes(type)))
+      .forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.name;
+        sel.appendChild(opt);
+      });
+  });
+}
+
+async function loadShadowCSV(){
+  const res = await loadFamilyComboCSV("shadow.csv", SHADOW_POS_MAP, "SHADOW_ITEMS", "SHADOW_COMBOS", "select");
+  if(!res) return;
+  populateShadowSelects();
+  calc();
+  console.log("shadow.csv loaded:", res.items.length, "items (incl. locked sets),", res.combos.length, "combo bonuses");
+}
+
+async function loadCostumeCSV(){
+  const res = await loadFamilyComboCSV("costume.csv", COSTUME_POS_MAP, "COSTUME_ITEMS", "COSTUME_COMBOS", "select");
+  if(!res) return;
+  populateCostumeSelects();
+  calc();
+  console.log("costume.csv loaded:", res.items.length, "items (incl. locked sets),", res.combos.length, "combo bonuses");
+}
+
+/* ── aggregate bonuses from a family/combo slot group (Shadow or Costume) ── */
+function getFamilyComboBonus(slotIds, typeMap, itemsWindowKey, combosWindowKey){
+  const bonus = newBonus();
+
+  const items = window[itemsWindowKey] || [];
+  const equipped = {}; /* slotType -> item */
+
+  slotIds.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+    const item = items.find(i => i.id === sel.value);
+    if(!item) return;
+    equipped[typeMap[id]] = item;
+
+    const isNone = typeof item.id === "string" && item.id.startsWith("none_");
+    if(isNone) return;
+
+    addBonus(bonus, item);
+    bonus.pieces.push(item);
+  });
+
+  /* auto-detect combo/set bonuses: every listed position must hold an
+   * equipped (non-None) item whose family matches the combo's family */
+  (window[combosWindowKey] || []).forEach(combo => {
+    const ok = combo.positions.every(pos => {
+      const item = equipped[pos];
+      return item && item.family &&
+        item.family.toLowerCase() === combo.family.toLowerCase();
+    });
+    if(!ok) return;
+
+    addBonus(bonus, combo);
+    bonus.pieces.push(combo);
+  });
+
+  return bonus;
+}
+
+/* Shadow Equipment combines both mechanisms, same as Costume:
+ *  1. Direct selection — a combo item (e.g. "+10 Slash Weapon+Armor+Shoes")
+ *     picked from a dropdown is locked across its slots by
+ *     syncShadowCombo() and counted once (deduped by id).
+ *  2. Family auto-detect — equipping matching individually-named pieces
+ *     separately (e.g. three distinct "10 Slash"-family items) still
+ *     grants the combo bonus automatically, same as it always has —
+ *     though this path only works if standalone pieces happen to exist
+ *     for every one of the combo's slots; direct selection (1) is what
+ *     keeps the combo usable even when that's not the case. */
+function getShadowBonus(){
+
+  const bonus = newBonus();
+  const seen = new Set();
+  const equipped = {};
+
+  SHADOW_SLOTS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+
+    const item = (window.SHADOW_ITEMS || []).find(i => i.id === sel.value);
+    if(!item) return;
+
+    equipped[SHADOW_TYPE[id]] = item;
+
+    const isNone = typeof item.id === "string" && item.id.startsWith("none_");
+    if(isNone) return;
+    if(seen.has(item.id)) return;
+    seen.add(item.id);
+
+    addBonus(bonus, item);
+    bonus.pieces.push(item);
+  });
+
+  (window.SHADOW_COMBOS || []).forEach(combo => {
+    const ok = combo.positions.every(pos => {
+      const item = equipped[pos];
+      return item && item.family &&
+        item.family.toLowerCase() === combo.family.toLowerCase() &&
+        !(Array.isArray(item.positions) && item.positions.length > 1);
+    });
+    if(!ok) return;
+
+    addBonus(bonus, combo);
+    bonus.pieces.push(combo);
+  });
+
+  return bonus;
+}
+
+/* Costume combines both mechanisms:
+ *  1. Direct selection — a Set item (e.g. "Hit Physical Upper+Middle+Lower
+ *     Set") picked from a dropdown is locked across its slots by
+ *     syncCostumeCombo() and counted once (deduped by id), same as
+ *     getEquipBonus() does for locked Equipment combo items.
+ *  2. Family auto-detect — equipping the matching individually-named
+ *     pieces (e.g. "Hit Physical Upper" + "...Middle" + "...Lower")
+ *     separately, without ever touching the Set dropdown option, still
+ *     grants the Set's bonus automatically, exactly as it always has.
+ * A combo is skipped from (2) for any slot occupied by a directly-selected
+ * multi-slot item (i.e. any item with its own `positions` array — a Set
+ * picked per #1). Without this, picking the 4-piece Set directly would
+ * *also* auto-fire the 3-piece Set's combo (since the 4-piece Set's family
+ * matches it too), double-granting a subset bonus on top of the Set's own
+ * — auto-detect is meant only for the "assembled from separate pieces"
+ * path, not for slots already pinned by an explicit Set selection. */
+function getCostumeBonus(){
+
+  const bonus = newBonus();
+  const seen = new Set();
+  const equipped = {};
+
+  COSTUME_SLOTS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+
+    const item = (window.COSTUME_ITEMS || []).find(i => i.id === sel.value);
+    if(!item) return;
+
+    equipped[COSTUME_TYPE[id]] = item;
+
+    const isNone = typeof item.id === "string" && item.id.startsWith("none_");
+    if(isNone) return;
+    if(seen.has(item.id)) return;
+    seen.add(item.id);
+
+    addBonus(bonus, item);
+    bonus.pieces.push(item);
+  });
+
+  (window.COSTUME_COMBOS || []).forEach(combo => {
+    const ok = combo.positions.every(pos => {
+      const item = equipped[pos];
+      return item && item.family &&
+        item.family.toLowerCase() === combo.family.toLowerCase() &&
+        !(Array.isArray(item.positions) && item.positions.length > 1);
+    });
+    if(!ok) return;
+
+    addBonus(bonus, combo);
+    bonus.pieces.push(combo);
+  });
+
+  return bonus;
+}
+
+/* ── column-index helper for collection.csv ──
+ * collection.csv has its own header set (gems / cards / costumes), including
+ * columns not used anywhere else (separate demi vs non-demi race%, Boss%,
+ * Perfect Hit, Skill Mod., CD Reduction, and four resist columns). Built
+ * separately from buildColIdx() so those extra columns don't leak into the
+ * shared item/enchant loaders. */
+function buildCollectionColIdx(headers){
+  const norm = s => (s||"").toLowerCase().replace(/[\s_.]/g,"");
+  const col = name => headers.findIndex(h => norm(h) === norm(name));
+  return {
+    name:           col("name"),
+    position:       col("position"),
+    atk:            col("atk"),
+    atkPct:         col("atk%"),
+    meleePct:       col("atkmelee%"),
+    rangePct:       col("atkrange%"),
+    racePctDemi:    col("race(demi)%"),
+    racePctNonDemi: col("race(non-demi)%"),
+    midSizePct:     col("midsize%"),
+    typePct:        col("atktype%"),
+    atkBossPct:     col("atkboss%"),
+    critPct:        col("cri%"),
+    criRate:        col("crirate"),
+    hitPhy:         col("hitphy%"),
+    perfectHit:     col("perfecthit"),
+    delay:          col("delay"),
+    fct:            col("fct"),
+    skillMod:       col("skillmod"),
+    cdReduction:    col("cdreduction"),
+    demiResist:     col("demiresist"),
+    midResist:      col("midresist"),
+    neutralResist:  col("neuralresist"),
+    rangeResist:    col("rangeresist"),
+    condition:      col("condition")
+  };
+}
+
+/* ── load collection items (gems / cards / costumes) live from
+ * collection.csv. Every row becomes an individually tickable checkbox —
+ * unlike the 7 fixed Collection checkboxes above, any number of these can
+ * be ticked at once. ── */
+async function loadCollectionItemsCSV(){
+
+  try {
+    const res = await fetch("collection.csv");
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+    const hdrIdx = rows.findIndex(r =>
+      r.some(c => /^name$/i.test((c||"").trim()))
+    );
+    if(hdrIdx < 0) return;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+    const idx = buildCollectionColIdx(headers);
+
+    const fresh = [];
+
+    for(let r = hdrIdx+1; r < rows.length; r++){
+      const row = rows[r];
+      const nm  = (row[idx.name]||"").replace(/\s+/g," ").trim();
+      if(!nm) continue;
+
+      fresh.push({
+        id: "collectionitem_" + r + "_" + nm.toLowerCase().replace(/[^a-z0-9]+/g,"_"),
+        name: nm,
+        position:      (row[idx.position]||"").trim(),
+        atk:           numCell(row[idx.atk]),
+        atkPct:        numCell(row[idx.atkPct]),
+        meleePct:      numCell(row[idx.meleePct]),
+        rangePct:      numCell(row[idx.rangePct]),
+        racePctDemi:    numCell(row[idx.racePctDemi]),
+        racePctNonDemi: numCell(row[idx.racePctNonDemi]),
+        midSizePct:    numCell(row[idx.midSizePct]),
+        typePct:       numCell(row[idx.typePct]),
+        atkBossPct:    numCell(row[idx.atkBossPct]),
+        critPct:       numCell(row[idx.critPct]),
+        criRate:       numCell(row[idx.criRate]),
+        hitPhy:        numCell(row[idx.hitPhy]),
+        perfectHit:    numCell(row[idx.perfectHit]),
+        delay:         numCell(row[idx.delay]),
+        fct:           numCell(row[idx.fct]),
+        skillMod:      numCell(row[idx.skillMod]),
+        cdReduction:   numCell(row[idx.cdReduction]),
+        demiResist:    numCell(row[idx.demiResist]),
+        midResist:     numCell(row[idx.midResist]),
+        neutralResist: numCell(row[idx.neutralResist]),
+        rangeResist:   numCell(row[idx.rangeResist]),
+        conditions:    parseConditionCell(row[idx.condition])
+      });
+    }
+
+    if(!fresh.length) return;
+
+    window.COLLECTION_ITEMS = fresh;
+
+    populateCollectionItems();
+    calc();
+
+    console.log("collection.csv loaded:", fresh.length, "collection items");
+
+  } catch(err) {
+    console.warn("collection.csv not loaded:", err.message);
+  }
+}
+
+/* ── render collection item checkboxes from window.COLLECTION_ITEMS ──
+ * Multiple boxes can be ticked at once — every ticked row's bonuses stack. */
+function populateCollectionItems(){
+
+  const row = document.getElementById("collectionItemRow");
+  if(!row) return;
+
+  row.innerHTML = "";
+
+  (window.COLLECTION_ITEMS || []).forEach(p => {
+
+    const lbl = document.createElement("label");
+    lbl.textContent = p.name + (p.position ? ` (${p.position})` : "");
+    row.appendChild(lbl);
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = p.id;
+    cb.dataset.collectionItem = "1";
+    cb.addEventListener("change", calc);
+    row.appendChild(cb);
+  });
+}
+
+/* ── Tick All / Untick All for Collection Items ── */
+const collectionTickAllBtn = document.getElementById("collectionTickAllBtn");
+if(collectionTickAllBtn){
+  collectionTickAllBtn.addEventListener("click", () => {
+    document.querySelectorAll('#collectionItemRow input[data-collection-item="1"]')
+      .forEach(cb => { cb.checked = true; });
+    calc();
+  });
+}
+const collectionUntickAllBtn = document.getElementById("collectionUntickAllBtn");
+if(collectionUntickAllBtn){
+  collectionUntickAllBtn.addEventListener("click", () => {
+    document.querySelectorAll('#collectionItemRow input[data-collection-item="1"]')
+      .forEach(cb => { cb.checked = false; });
+    calc();
+  });
+}
+
+/* aggregate bonuses from currently-checked collection items (collection.csv) */
+function getCollectionItemsBonus(){
+
+  const bonus = {
+    atk:0, atkPct:0, meleePct:0, rangePct:0,
+    racePct:0, racePctDemi:0, racePctNonDemi:0, midSizePct:0, typePct:0, atkBossPct:0,
+    critPct:0, criRate:0, hitPhy:0, perfectHit:0,
+    delay:0, fct:0, skillMod:0, cdReduction:0,
+    demiResist:0, midResist:0, neutralResist:0, rangeResist:0,
+    pieces:[]
+  };
+
+  (window.COLLECTION_ITEMS || []).forEach(p => {
+    const box = document.getElementById(p.id);
+    if(!box || !box.checked) return;
+
+    bonus.atk            += p.atk            || 0;
+    bonus.atkPct         += p.atkPct         || 0;
+    bonus.meleePct       += p.meleePct       || 0;
+    bonus.rangePct       += p.rangePct       || 0;
+    bonus.racePctDemi    += p.racePctDemi    || 0;
+    bonus.racePctNonDemi += p.racePctNonDemi || 0;
+    bonus.racePct        += (p.racePctDemi||0) + (p.racePctNonDemi||0);
+    bonus.midSizePct     += p.midSizePct     || 0;
+    bonus.typePct        += p.typePct        || 0;
+    bonus.atkBossPct     += p.atkBossPct     || 0;
+    bonus.critPct        += p.critPct        || 0;
+    bonus.criRate        += p.criRate        || 0;
+    bonus.hitPhy         += p.hitPhy         || 0;
+    bonus.perfectHit     += p.perfectHit     || 0;
+    bonus.delay          += p.delay          || 0;
+    bonus.fct            += p.fct            || 0;
+    bonus.skillMod       += p.skillMod       || 0;
+    bonus.cdReduction    += p.cdReduction    || 0;
+    bonus.demiResist     += p.demiResist     || 0;
+    bonus.midResist      += p.midResist      || 0;
+    bonus.neutralResist  += p.neutralResist  || 0;
+    bonus.rangeResist    += p.rangeResist    || 0;
+    bonus.pieces.push(p);
+  });
+
+  return bonus;
+}
+
+/* ── load skill name lookup from skills.csv ──
+ * Two-column file (name, skill_id) mapping the Skill_id tag carried by
+ * items.csv / shadow.csv / costume.csv rows (e.g. "skill_counter_slash")
+ * to a human-readable name ("Counter Slash"), so equipped pieces' Skill
+ * Mod. bonuses can be shown grouped by which skill they actually apply
+ * to instead of one blind summed number. */
+async function loadSkillsCSV(){
+  try {
+    const res = await fetch("skills.csv");
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+    const hdrIdx = rows.findIndex(r => r.some(c => /^name$/i.test((c||"").trim())));
+    if(hdrIdx < 0) return;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+    const norm = s => (s||"").toLowerCase().replace(/[\s_.]/g,"");
+    const nameIdx = headers.findIndex(h => norm(h) === "name");
+    const idIdx   = headers.findIndex(h => norm(h) === "skillid");
+    if(nameIdx < 0 || idIdx < 0) return;
+
+    const map = {};
+    for(let r = hdrIdx+1; r < rows.length; r++){
+      const row = rows[r];
+      const nm = (row[nameIdx]||"").trim();
+      const id = (row[idIdx]||"").trim();
+      if(!nm || !id) continue;
+      map[id] = nm;
+    }
+
+    if(!Object.keys(map).length) return;
+
+    window.SKILLS_MAP = map;
+    calc();
+
+    console.log("skills.csv loaded:", Object.keys(map).length, "skills");
+
+  } catch(err) {
+    console.warn("skills.csv not loaded:", err.message);
+  }
+}
+
+/* resolve a Skill_id tag (e.g. "skill_counter_slash") to its display
+ * name via window.SKILLS_MAP, falling back to the raw id if unknown. */
+function skillDisplayName(skillId){
+  if(!skillId) return "";
+  const map = window.SKILLS_MAP || {};
+  return map[skillId] || skillId;
+}
+
+/* ── load pet items live from pet.csv ──
+ * Same 21-stat schema and checkbox pattern as collection.csv / the
+ * Collection Items panel — reuses buildCollectionColIdx() since the
+ * header layout is identical. ── */
+async function loadPetItemsCSV(){
+
+  try {
+    const res = await fetch("pet.csv");
+    if(!res.ok) throw new Error("fetch " + res.status);
+
+    const rows = parseCSV(await res.text());
+    const hdrIdx = rows.findIndex(r =>
+      r.some(c => /^name$/i.test((c||"").trim()))
+    );
+    if(hdrIdx < 0) return;
+
+    const headers = rows[hdrIdx].map(h => (h||"").trim());
+    const idx = buildCollectionColIdx(headers);
+
+    const fresh = [];
+
+    for(let r = hdrIdx+1; r < rows.length; r++){
+      const row = rows[r];
+      const nm  = (row[idx.name]||"").replace(/\s+/g," ").trim();
+      if(!nm) continue;
+
+      fresh.push({
+        id: "petitem_" + r + "_" + nm.toLowerCase().replace(/[^a-z0-9]+/g,"_"),
+        name: nm,
+        position:      (row[idx.position]||"").trim(),
+        atk:           numCell(row[idx.atk]),
+        atkPct:        numCell(row[idx.atkPct]),
+        meleePct:      numCell(row[idx.meleePct]),
+        rangePct:      numCell(row[idx.rangePct]),
+        racePctDemi:    numCell(row[idx.racePctDemi]),
+        racePctNonDemi: numCell(row[idx.racePctNonDemi]),
+        midSizePct:    numCell(row[idx.midSizePct]),
+        typePct:       numCell(row[idx.typePct]),
+        atkBossPct:    numCell(row[idx.atkBossPct]),
+        critPct:       numCell(row[idx.critPct]),
+        criRate:       numCell(row[idx.criRate]),
+        hitPhy:        numCell(row[idx.hitPhy]),
+        perfectHit:    numCell(row[idx.perfectHit]),
+        delay:         numCell(row[idx.delay]),
+        fct:           numCell(row[idx.fct]),
+        skillMod:      numCell(row[idx.skillMod]),
+        cdReduction:   numCell(row[idx.cdReduction]),
+        demiResist:    numCell(row[idx.demiResist]),
+        midResist:     numCell(row[idx.midResist]),
+        neutralResist: numCell(row[idx.neutralResist]),
+        rangeResist:   numCell(row[idx.rangeResist]),
+        conditions:    parseConditionCell(row[idx.condition])
+      });
+    }
+
+    if(!fresh.length) return;
+
+    window.PET_ITEMS = fresh;
+
+    populatePetItems();
+    calc();
+
+    console.log("pet.csv loaded:", fresh.length, "pet items");
+
+  } catch(err) {
+    console.warn("pet.csv not loaded:", err.message);
+  }
+}
+
+/* ── render the Pet select dropdown from window.PET_ITEMS ──
+ * Choose one pet at a time (like an Equipment slot), not multi-tick. */
+function populatePetItems(){
+
+  const sel = document.getElementById("petSelect");
+  if(!sel) return;
+
+  sel.innerHTML = "";
+
+  const noneOpt = document.createElement("option");
+  noneOpt.value = "none_pet";
+  noneOpt.textContent = "— None —";
+  sel.appendChild(noneOpt);
+
+  (window.PET_ITEMS || []).forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.name + (p.position ? ` (${p.position})` : "");
+    sel.appendChild(opt);
+  });
+}
+
+/* bonuses from the single currently-selected pet (pet.csv) */
+function getPetItemsBonus(){
+
+  const bonus = {
+    atk:0, atkPct:0, meleePct:0, rangePct:0,
+    racePct:0, racePctDemi:0, racePctNonDemi:0, midSizePct:0, typePct:0, atkBossPct:0,
+    critPct:0, criRate:0, hitPhy:0, perfectHit:0,
+    delay:0, fct:0, skillMod:0, cdReduction:0,
+    demiResist:0, midResist:0, neutralResist:0, rangeResist:0,
+    pieces:[]
+  };
+
+  const sel = document.getElementById("petSelect");
+  if(!sel) return bonus;
+
+  const p = (window.PET_ITEMS || []).find(i => i.id === sel.value);
+  if(!p) return bonus;
+
+  bonus.atk            += p.atk            || 0;
+  bonus.atkPct         += p.atkPct         || 0;
+  bonus.meleePct       += p.meleePct       || 0;
+  bonus.rangePct       += p.rangePct       || 0;
+  bonus.racePctDemi    += p.racePctDemi    || 0;
+  bonus.racePctNonDemi += p.racePctNonDemi || 0;
+  bonus.racePct        += (p.racePctDemi||0) + (p.racePctNonDemi||0);
+  bonus.midSizePct     += p.midSizePct     || 0;
+  bonus.typePct        += p.typePct        || 0;
+  bonus.atkBossPct     += p.atkBossPct     || 0;
+  bonus.critPct        += p.critPct        || 0;
+  bonus.criRate        += p.criRate        || 0;
+  bonus.hitPhy         += p.hitPhy         || 0;
+  bonus.perfectHit     += p.perfectHit     || 0;
+  bonus.delay          += p.delay          || 0;
+  bonus.fct            += p.fct            || 0;
+  bonus.skillMod       += p.skillMod       || 0;
+  bonus.cdReduction    += p.cdReduction    || 0;
+  bonus.demiResist     += p.demiResist     || 0;
+  bonus.midResist      += p.midResist      || 0;
+  bonus.neutralResist  += p.neutralResist  || 0;
+  bonus.rangeResist    += p.rangeResist    || 0;
+  bonus.pieces.push(p);
+
+  return bonus;
+}
+
+/* ── populate equipment dropdowns from items.js ── */
+function populateEquip(){
+
+  const list = window.ITEMS || [];
+
+  /* type can be a string or an array of strings */
+  const fill = (selectId, type) => {
+
+    const sel = document.getElementById(selectId);
+    if(!sel) return;
+
+    const types =
+      Array.isArray(type) ? type : [type];
+
+    list
+      .filter(i => {
+        if(types.includes(i.type)) return true;
+        if(Array.isArray(i.positions) &&
+           i.positions.some(p => types.includes(p))) return true;
+        return false;
+      })
+      .forEach(item => {
+
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.name;
+        sel.appendChild(opt);
+      });
+  };
+
+  fill("eqWeapon","weapon");
+  fill("eqOffhand",["offhand","shield","weapon"]);
+  fill("eqHeadU","headUpper");
+  fill("eqHeadM","headMid");
+  fill("eqHeadL","headLow");
+  fill("eqArmor","armor");
+  fill("eqGarment","garment");
+  fill("eqShoes","shoes");
+  fill("eqAcc1","accessoryR");
+  fill("eqAcc2","accessoryL");
+}
+
+/* ── populate the 7 card-box dropdowns (12. Card) ──
+ * Includes both single-slot cards (i.type === slot) and multi-slot combo
+ * cards (i.positions includes slot) — the latter are locked across their
+ * slots by syncCardCombo(), same as populateCostumeSelects() /
+ * populateShadowSelects() above. */
+function populateCardSelects(){
+  CARD_SLOTS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+    const type = CARD_TYPE[id];
+    sel.innerHTML = "";
+    (window.CARD_ITEMS || [])
+      .filter(i => i.type === type || (Array.isArray(i.positions) && i.positions.includes(type)))
+      .forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.name;
+        sel.appendChild(opt);
+      });
+  });
+}
+
+/* ── mid_low slot synchronisation ──
+ * A mid_low item occupies both the Middle and Lower headgear slots.
+ * Picking such an item in one slot mirrors it in the other; picking a
+ * regular item in either slot clears the mirror from the other. */
+function syncMidLow(originId){
+
+  const m = document.getElementById("eqHeadM");
+  const l = document.getElementById("eqHeadL");
+  if(!m || !l) return;
+
+  const isMidLow = item =>
+    item && Array.isArray(item.positions)
+         && item.positions.includes("headMid")
+         && item.positions.includes("headLow");
+
+  const mItem = window.getItemById(m.value);
+  const lItem = window.getItemById(l.value);
+
+  if(originId === "eqHeadM"){
+
+    if(isMidLow(mItem)){
+      /* mirror to lower */
+      if(l.querySelector(`option[value="${m.value}"]`)){
+        l.value = m.value;
+      }
+    } else if(isMidLow(lItem)){
+      /* user replaced the mid_low in middle — clear lower */
+      l.value = "none_headL";
+    }
+
+  } else if(originId === "eqHeadL"){
+
+    if(isMidLow(lItem)){
+      if(m.querySelector(`option[value="${l.value}"]`)){
+        m.value = l.value;
+      }
+    } else if(isMidLow(mItem)){
+      m.value = "none_headM";
+    }
+  }
+}
+
+/* ── headUpper_armor combo sync ──
+ * An item like "12 Spider Seduction + 12 Upgrade Hero (Guillotine/CS)"
+ * occupies both the Headgear (Upper) and Armor slots at once. Picking
+ * such an item in one slot mirrors it in the other; picking a regular
+ * item in either slot clears the mirror from the other. */
+function syncHeadArmorCombo(originId){
+
+  const h = document.getElementById("eqHeadU");
+  const a = document.getElementById("eqArmor");
+  if(!h || !a) return;
+
+  const isCombo = item =>
+    item && Array.isArray(item.positions)
+         && item.positions.includes("headUpper")
+         && item.positions.includes("armor");
+
+  const hItem = window.getItemById(h.value);
+  const aItem = window.getItemById(a.value);
+
+  if(originId === "eqHeadU"){
+
+    if(isCombo(hItem)){
+      /* mirror to armor */
+      if(a.querySelector(`option[value="${h.value}"]`)){
+        a.value = h.value;
+      }
+    } else if(isCombo(aItem)){
+      /* user replaced the combo item in headgear — clear armor */
+      a.value = "none_armor";
+    }
+
+  } else if(originId === "eqArmor"){
+
+    if(isCombo(aItem)){
+      if(h.querySelector(`option[value="${a.value}"]`)){
+        h.value = a.value;
+      }
+    } else if(isCombo(hItem)){
+      h.value = "none_headU";
+    }
+  }
+}
+
+/* ── card combo sync (e.g. a two-piece card set spanning Armor+Garment) ──
+ * A card whose Position spans multiple card slots (e.g. "armor_garment")
+ * is directly selectable in each of those slots' Card boxes. Picking it
+ * in one slot locks the same card into every other slot it occupies;
+ * picking a different card in any of those slots clears the combo back
+ * out of the others. Generalized version of syncHeadArmorCombo() above,
+ * mirroring syncCostumeCombo() / syncShadowCombo() below. */
+function syncCardCombo(originId){
+
+  const posOf = CARD_TYPE;
+  const ids   = CARD_SLOTS;
+
+  const getSel  = id => document.getElementById(id);
+  const getItem = id => (window.CARD_ITEMS || []).find(i => i.id === getSel(id).value);
+  const noneIdFor = id => {
+    const none = (window.CARD_ITEMS || []).find(i =>
+      i.type === posOf[id] && typeof i.id === "string" && i.id.startsWith("none_")
+    );
+    return none ? none.id : "";
+  };
+
+  const isCombo = item => item && Array.isArray(item.positions) && item.positions.length > 1;
+
+  const originItem = getItem(originId);
+
+  /* lock: mirror the picked combo card into every other slot it occupies */
+  if(isCombo(originItem)){
+    ids.forEach(id => {
+      if(id === originId) return;
+      if(!originItem.positions.includes(posOf[id])) return;
+      const sel = getSel(id);
+      if(sel.querySelector(`option[value="${originItem.id}"]`)){
+        sel.value = originItem.id;
+      }
+    });
+  }
+
+  /* clear any combo card left stranded in a slot whose sibling slots no
+   * longer all hold that same combo card */
+  ids.forEach(id => {
+    const item = getItem(id);
+    if(!isCombo(item)) return;
+
+    const stillLocked = item.positions.every(pos => {
+      const sid = ids.find(x => posOf[x] === pos);
+      const it  = sid && getItem(sid);
+      return it && it.id === item.id;
+    });
+
+    if(!stillLocked){
+      const noneId = noneIdFor(id);
+      if(noneId) getSel(id).value = noneId;
+    }
+  });
+}
+
+/* ── costume combo sync (Upper+Middle+Lower / +Garment Sets) ──
+ * A costume item whose Position spans multiple slots (e.g.
+ * "upper_middle_lower") is directly selectable in each of those slots'
+ * dropdowns, exactly like an Equipment combo item. Picking it in one slot
+ * locks the same item into every other slot it occupies; picking a
+ * different item in any of those slots clears the combo back out of the
+ * others (mirrors syncMidLow / syncHeadArmorCombo above, generalized to
+ * more than two slots). */
+function syncCostumeCombo(originId){
+
+  const posOf = COSTUME_TYPE;
+  const ids   = COSTUME_SLOTS;
+
+  const getSel  = id => document.getElementById(id);
+  const getItem = id => (window.COSTUME_ITEMS || []).find(i => i.id === getSel(id).value);
+  const noneIdFor = id => {
+    const none = (window.COSTUME_ITEMS || []).find(i =>
+      i.type === posOf[id] && typeof i.id === "string" && i.id.startsWith("none_")
+    );
+    return none ? none.id : "";
+  };
+
+  const isCombo = item => item && Array.isArray(item.positions) && item.positions.length > 1;
+
+  const originItem = getItem(originId);
+
+  /* lock: mirror the picked combo item into every other slot it occupies */
+  if(isCombo(originItem)){
+    ids.forEach(id => {
+      if(id === originId) return;
+      if(!originItem.positions.includes(posOf[id])) return;
+      const sel = getSel(id);
+      if(sel.querySelector(`option[value="${originItem.id}"]`)){
+        sel.value = originItem.id;
+      }
+    });
+  }
+
+  /* clear any combo item left stranded in a slot whose sibling slots no
+   * longer all hold that same combo item */
+  ids.forEach(id => {
+    const item = getItem(id);
+    if(!isCombo(item)) return;
+
+    const stillLocked = item.positions.every(pos => {
+      const sid = ids.find(x => posOf[x] === pos);
+      const it  = sid && getItem(sid);
+      return it && it.id === item.id;
+    });
+
+    if(!stillLocked){
+      const noneId = noneIdFor(id);
+      if(noneId) getSel(id).value = noneId;
+    }
+  });
+}
+
+/* ── shadow combo sync (e.g. +10 Slash Weapon+Armor+Shoes) ──
+ * Same lock/mirror behavior as syncCostumeCombo() above, for Shadow
+ * Equipment's own multi-slot combo items. */
+function syncShadowCombo(originId){
+
+  const posOf = SHADOW_TYPE;
+  const ids   = SHADOW_SLOTS;
+
+  const getSel  = id => document.getElementById(id);
+  const getItem = id => (window.SHADOW_ITEMS || []).find(i => i.id === getSel(id).value);
+  const noneIdFor = id => {
+    const none = (window.SHADOW_ITEMS || []).find(i =>
+      i.type === posOf[id] && typeof i.id === "string" && i.id.startsWith("none_")
+    );
+    return none ? none.id : "";
+  };
+
+  const isCombo = item => item && Array.isArray(item.positions) && item.positions.length > 1;
+
+  const originItem = getItem(originId);
+
+  if(isCombo(originItem)){
+    ids.forEach(id => {
+      if(id === originId) return;
+      if(!originItem.positions.includes(posOf[id])) return;
+      const sel = getSel(id);
+      if(sel.querySelector(`option[value="${originItem.id}"]`)){
+        sel.value = originItem.id;
+      }
+    });
+  }
+
+  ids.forEach(id => {
+    const item = getItem(id);
+    if(!isCombo(item)) return;
+
+    const stillLocked = item.positions.every(pos => {
+      const sid = ids.find(x => posOf[x] === pos);
+      const it  = sid && getItem(sid);
+      return it && it.id === item.id;
+    });
+
+    if(!stillLocked){
+      const noneId = noneIdFor(id);
+      if(noneId) getSel(id).value = noneId;
+    }
+  });
+}
+
+/* ── multi-slot enchant lock (e.g. Champion Glory, footgear slot2_3_4) ──
+ * A CSV row whose Position lists more than one slot token (expanded by
+ * expandEnchantSlotKeys(), e.g. "slot2_3_4") is offered as an option in
+ * every one of those slots' dropdowns — it genuinely occupies all of
+ * them at once, the same way a locked Costume Set or Equipment combo
+ * item occupies multiple gear slots. Picking such an option in any one
+ * of its slots locks/mirrors it into the others within the same physical
+ * piece's slot group (ENCHANT_SLOT_GROUPS); picking a different option
+ * in any of those slots clears the lock back out of the rest. A regular
+ * single-slot enchant (the common case) is left untouched. */
+function getEnchantAt(id){
+  const cfg = ENCHANT_SELECTS[id];
+  if(!cfg) return null;
+  const list = (window[cfg.pool] || {})[cfg.key] || [];
+  const sel  = document.getElementById(id);
+  return sel ? list.find(e => e.id === sel.value) : null;
+}
+
+function enchantSpanIds(enc, group){
+  return group.filter(id => {
+    const cfg = ENCHANT_SELECTS[id];
+    const list = (window[cfg.pool] || {})[cfg.key] || [];
+    return list.some(e => e.id === enc.id);
+  });
+}
+
+function syncEnchantCombo(originId){
+
+  const group = ENCHANT_SLOT_GROUPS.find(g => g.includes(originId));
+  if(!group) return;
+
+  const originEnc = getEnchantAt(originId);
+
+  if(originEnc){
+    const spanIds = enchantSpanIds(originEnc, group);
+    if(spanIds.length > 1){
+      spanIds.forEach(id => {
+        if(id === originId) return;
+        const sel = document.getElementById(id);
+        if(sel && sel.querySelector(`option[value="${originEnc.id}"]`)){
+          sel.value = originEnc.id;
+        }
+      });
+    }
+  }
+
+  /* clear a multi-slot enchant left stranded in a slot whose sibling
+   * slots (within its own span) no longer all hold that same option */
+  group.forEach(id => {
+    const enc = getEnchantAt(id);
+    if(!enc) return;
+
+    const spanIds = enchantSpanIds(enc, group);
+    if(spanIds.length <= 1) return;
+
+    const stillLocked = spanIds.every(sid => {
+      const e2 = getEnchantAt(sid);
+      return e2 && e2.id === enc.id;
+    });
+
+    if(!stillLocked){
+      const sel = document.getElementById(id);
+      if(sel) sel.value = "none";
+    }
+  });
+}
+
+populateEquip();
+populateCardSelects();
+populateCollectionItems();
+populatePetItems();
+populateShadowSelects();
+populateCostumeSelects();
+populateEnchantSelects();
+populateSkills();
+
+/* aggregate the bonuses from all currently-equipped items */
+function getEquipBonus(){
+
+  const bonus = newBonus();
+
+  /* avoid double-counting items that occupy multiple slots (mid_low) */
+  const seen = new Set();
+
+  const slots = EQ_SLOTS;
+
+  /* refine track — collected separately so we can display them */
+  bonus.refines = [];
+
+  slots.forEach(slot => {
+
+    const sel = document.getElementById(slot);
+    if(!sel) return;
+
+    const item = window.getItemById(sel.value);
+    if(!item) return;
+
+    /* skip the "— None —" placeholder for stat aggregation */
+    const isNone = typeof item.id === "string" && item.id.startsWith("none_");
+
+    /* tier + refinement only apply to weapon slots */
+    const tierEl = TIER_SLOTS.includes(slot)
+      ? document.getElementById(slot + "_tier") : null;
+    const refEl  = TIER_SLOTS.includes(slot)
+      ? document.getElementById(slot + "_ref")  : null;
+
+    if(!isNone && tierEl && refEl){
+
+      const t = tierEl.value;
+      const r = Math.max(0, parseFloat(refEl.value) || 0);
+      const tier = TIER_BONUS[t];
+
+      if(tier){
+        /* Tier bonuses scale with refinement level */
+        const atkFromRefine        = tier.atk * r;
+        const midSizePctFromRefine = tier.midSizePct * r;
+        const atkPctFromRefine     = tier.atkPctPerRef * r;
+
+        bonus.atk        += atkFromRefine;
+        bonus.midSizePct += midSizePctFromRefine;
+        bonus.atkPct     += atkPctFromRefine;
+
+        bonus.refines.push({
+          slot,
+          item: item.name,
+          tier: t,
+          ref:  r,
+          atk:        atkFromRefine,
+          midSizePct: midSizePctFromRefine,
+          atkPct:     atkPctFromRefine
+        });
+      }
+    }
+
+    /* item-stat aggregation — dedupe by id so mid_low isn't counted twice */
+    if(isNone) return;
+    if(seen.has(item.id)) return;
+    seen.add(item.id);
+
+    addBonus(bonus, item);
+    bonus.pieces.push(item);
+  });
+
+  return bonus;
+}
+
+/* ── aggregate bonuses from the 7 card boxes (12. Card) ──
+ * Same dedupe-by-id pattern as getShadowBonus()/getFamilyComboBonus() —
+ * a combo card locked across two slots (e.g. Armor+Garment) is only
+ * counted once even though it's selected in both boxes. */
+function getCardBonus(){
+
+  const bonus = newBonus();
+  const seen = new Set();
+
+  CARD_SLOTS.forEach(id => {
+    const sel = $(id);
+    if(!sel) return;
+
+    const item = (window.CARD_ITEMS || []).find(i => i.id === sel.value);
+    if(!item) return;
+
+    const isNone = typeof item.id === "string" && item.id.startsWith("none_");
+    if(isNone) return;
+    if(seen.has(item.id)) return;
+    seen.add(item.id);
+
+    addBonus(bonus, item);
+    bonus.pieces.push(item);
+  });
+
+  return bonus;
+}
+
+function f(id){
+  const el = $(id);
+  return el ? (parseFloat(el.value) || 0) : 0;
+}
+
+function floor(n){
+  return Math.floor(n);
+}
+
+/* round any displayed number to at most 2 decimal places (also mops up
+ * floating-point noise like 0.1+0.2 → 0.30000000000000004). Non-numbers
+ * pass through untouched. */
+function round2(n){
+  return (typeof n === "number" && Number.isFinite(n))
+    ? Math.round(n * 100) / 100
+    : n;
+}
+
+function statusAtk(lvl,str,dex,luk){
+
+  return floor(lvl/4)
+    + str
+    + floor(dex/5)
+    + floor(luk/3);
+}
+
+function getSkillMultiplier(stats){
+
+  const active = getActiveSkill();
+
+  const base  = active.mult;
+  const scale = active.scale;
+
+  const lvl = stats ? stats.lvl : f("baseLvl");
+  const str = stats ? stats.str : f("str");
+  const dex = stats ? stats.dex : f("dex");
+  const luk = stats ? stats.luk : f("luk");
+
+  let bonus = 0;
+
+  switch(scale){
+
+    case "str":
+      bonus =
+        str * 2;
+      break;
+
+    case "str_level":
+      bonus =
+        (str * 2)
+        + lvl;
+      break;
+
+    case "str_dex_level":
+      bonus =
+        (str * 2)
+        + dex
+        + lvl;
+      break;
+
+    case "all_stats_level":
+      bonus =
+        str
+        + dex
+        + luk
+        + lvl;
+      break;
+
+    default:
+      bonus = 0;
+  }
+
+  return (base + bonus) / 100;
+}
+
+function renderSkillFormula(stats){
+
+  const box = document.getElementById("skillFormula");
+  if(!box) return;
+
+  const active = getActiveSkill();
+  const mode   = getMode().toUpperCase();
+
+  const lvl = stats ? stats.lvl : f("baseLvl");
+  const str = stats ? stats.str : f("str");
+  const dex = stats ? stats.dex : f("dex");
+  const luk = stats ? stats.luk : f("luk");
+
+  let breakdown = "";
+
+  switch(active.scale){
+
+    case "str":
+      breakdown =
+        `${active.mult}% + (STR×2 = ${str*2}) = ${active.mult + str*2}%`;
+      break;
+
+    case "str_level":
+      breakdown =
+        `${active.mult}% + (STR×2 = ${str*2}) + (Lv = ${lvl}) = `
+        + `${active.mult + str*2 + lvl}%`;
+      break;
+
+    case "str_dex_level":
+      breakdown =
+        `${active.mult}% + (STR×2 = ${str*2}) + (DEX = ${dex}) + (Lv = ${lvl}) = `
+        + `${active.mult + str*2 + dex + lvl}%`;
+      break;
+
+    case "all_stats_level":
+      breakdown =
+        `${active.mult}% + (STR = ${str}) + (DEX = ${dex}) + (LUK = ${luk}) + (Lv = ${lvl}) = `
+        + `${active.mult + str + dex + luk + lvl}%`;
+      break;
+
+    default:
+      breakdown = `${active.mult}%`;
+  }
+
+  const lines = [
+    `<b>${active.name}</b> &nbsp; <span style="color:var(--accent)">[${mode} mode]</span>`,
+    `Formula: ${active.desc}`,
+    `Breakdown: ${breakdown}`
+  ];
+
+  if(active.dmgMod && active.dmgMod !== 1){
+    lines.push(`WoE Damage Modifier: ×${active.dmgMod}`);
+  }
+
+  box.innerHTML = lines.map(x => "&gt; " + x).join("<br>");
+}
+
+function refineBonus(wAtk,refine){
+
+  return floor(wAtk * 0.05 * refine);
+}
+function syncWeaponATK(){
+
+  const weaponSelect =
+    $("eqWeapon");
+
+  if(!weaponSelect) return;
+
+  const item =
+    window.getItemById(weaponSelect.value);
+
+  const atk =
+    item?.atk || 0;
+
+  $("wAtk").value = atk;
+}
+function syncRefinement(){
+
+  const refineSelect =$("eqWeapon_ref");
+
+  if(!refineSelect) return;
+
+  const item =refineSelect.value
+
+  const refine = item?.atk || 0;
+
+  $("refine").value = item;
+}
+function calc(){
+
+  const eq   = getEquipBonus();
+  const ci   = getCollectionItemsBonus();
+  const pi   = getPetItemsBonus();
+  const ench = getEnchantSelectBonus();
+  const sh   = getShadowBonus();
+  const co   = getCostumeBonus();
+  const crd  = getCardBonus();
+
+  const lvl = f("baseLvl");
+  const str = f("str") + (eq.str||0) + (ench.str||0) + (sh.str||0) + (co.str||0) + (crd.str||0)
+  const dex = f("dex") + (eq.dex||0) + (ench.dex||0) + (sh.dex||0) + (co.dex||0) + (crd.dex||0)
+  const luk = f("luk") + (eq.luk||0) + (ench.luk||0) + (sh.luk||0) + (co.luk||0) + (crd.luk||0)
+
+  const refine = f("refine");
+
+  /* conditional (stat-threshold) item bonuses — evaluated against the
+   * final STR/DEX/LUK/level/refine now that they're known. See
+   * evalConditions() for the "conditions" item-field format. */
+  const agi = f("agi");
+  const vit = f("vit");
+  const cond = getConditionalBonus({ str, dex, luk, agi, vit, lvl, refine }, [eq, ci, pi, ench, sh, co, crd]);
+
+  /* sum any stat key across every bonus source — used for the
+   * informational-only stats (Boss%, Perfect Hit, Skill Mod., CD Reduction,
+   * the 4 resists, and the demi/non-demi race split) that aren't currently
+   * wired into the damage formula but are shown in Total Result. */
+  const BONUS_SOURCES = [eq, ci, pi, ench, sh, co, crd, cond];
+  const sumStat = key => BONUS_SOURCES.reduce((t,s) => t + (s[key]||0), 0);
+
+  const baseWeaponAtk = f("wAtk");
+  const equipAtk = eq.atk + ci.atk + pi.atk + ench.atk + sh.atk + co.atk + crd.atk + cond.atk;
+
+  const wVar = 5 / 100;
+  const mastery = f("mastery");
+
+  const atkPct =(f("atkPct") + eq.atkPct + ci.atkPct + pi.atkPct + ench.atkPct + sh.atkPct + co.atkPct + crd.atkPct + cond.atkPct) / 100;
+
+  const racePct    = (1 + (ci.racePct    + pi.racePct    + eq.racePct    + ench.racePct    + sh.racePct    + co.racePct    + crd.racePct    + cond.racePct)    / 100);
+  const midSizePct = (1 + (ci.midSizePct + pi.midSizePct + eq.midSizePct + ench.midSizePct + sh.midSizePct + co.midSizePct + crd.midSizePct + cond.midSizePct) / 100);
+
+  const meleePct = 1 + (ci.meleePct + pi.meleePct + eq.meleePct + ench.meleePct + sh.meleePct + co.meleePct + crd.meleePct + cond.meleePct) / 100;
+  const rangePct = 1 + (ci.rangePct + pi.rangePct + eq.rangePct + ench.rangePct + sh.rangePct + co.rangePct + crd.rangePct + cond.rangePct) / 100;
+  const typePct  = 1 + (ci.typePct + pi.typePct + eq.typePct + ench.typePct + sh.typePct + co.typePct + crd.typePct + cond.typePct) / 100;
+  const critPct  = (f("critPct") + eq.critPct + ci.critPct + pi.critPct + ench.critPct + sh.critPct + co.critPct + crd.critPct + cond.critPct) / 100;
+  const hitPhy   = (f("hitPhy")  + eq.hitPhy  + ci.hitPhy  + pi.hitPhy  + ench.hitPhy  + sh.hitPhy  + co.hitPhy  + crd.hitPhy  + cond.hitPhy)  / 100;
+
+  /* Delay / FCT reduction — informational totals, not fed into the damage formula */
+  const delayPct = eq.delay + ci.delay + pi.delay + ench.delay + sh.delay + co.delay + crd.delay + cond.delay;
+  const fctPct   = eq.fct   + ci.fct   + pi.fct   + ench.fct   + sh.fct   + co.fct   + crd.fct   + cond.fct;
+
+  /* Remaining stats from the 21-stat CSV schema that don't yet have a
+   * mechanic wired into the damage formula (Boss%, Cri rate, Perfect Hit,
+   * Skill Mod., CD Reduction, the 4 resists, and the demi/non-demi race
+   * split) — tracked and shown in Total Result, informational only. */
+  const racePctDemiTotal    = sumStat("racePctDemi");
+  const racePctNonDemiTotal = sumStat("racePctNonDemi");
+  const atkBossPctTotal     = sumStat("atkBossPct");
+  const atkNeutralTotal     = sumStat("atkNeutral");
+  const criRateTotal        = sumStat("criRate");
+  const perfectHitTotal     = sumStat("perfectHit");
+  const skillModStatTotal   = sumStat("skillMod");
+  const cdReductionTotal    = sumStat("cdReduction");
+  const demiResistTotal     = sumStat("demiResist");
+  const midResistTotal      = sumStat("midResist");
+  const neutralResistTotal  = sumStat("neutralResist");
+  const rangeResistTotal    = sumStat("rangeResist");
+  const maxHpPctTotal       = sumStat("maxHpPct");
+
+  /* extra damage multipliers from Collection Items + Equipment */
+  const extraMul =
+    rangePct
+  * racePct
+  * midSizePct
+  * meleePct
+  * typePct;
+
+  const skillMod = getSkillMultiplier({lvl,str,dex,luk});
+  const activeSkill = getActiveSkill();
+  const modeMod = activeSkill.dmgMod || 1;
+  const hits = Math.max(1,f("hits"));
+
+  const elementMod = f("element");
+  const sizeMod = f("size");
+  const raceMod = f("race");
+  const cardMod = f("cardPct") / 100;
+
+  const hardDef = f("hardDef");
+  const softDef = f("softDef");
+  const dmgRed = f("dmgRed") / 100;
+  const hp = f("hp");
+
+  const sAtk = statusAtk(lvl,str,dex,luk);
+
+  const statBonus = floor(baseWeaponAtk * str / 200);
+
+  const refineAtk = refineBonus(baseWeaponAtk,refine);
+
+  const weaponMin =floor(baseWeaponAtk * (1 - wVar)+ statBonus+ refineAtk);
+
+  const weaponAvg =floor(baseWeaponAtk+ statBonus+ refineAtk);
+
+  const weaponMax =floor(baseWeaponAtk * (1 + wVar)+ statBonus+ refineAtk);
+
+  const atkMultiplier =1+ atkPct;
+
+  const groupMultiplier =sizeMod* raceMod* (1 + cardMod);
+
+  function finalDamage(weaponAtk){
+
+    let atk = floor((sAtk * 2)+ ((weaponAtk + mastery) * atkMultiplier));
+
+    atk =
+      floor(atk * elementMod);
+
+    atk =
+      floor(atk * groupMultiplier);
+
+    atk =
+      floor(atk * skillMod);
+
+    atk =
+      floor(atk * modeMod);
+
+    atk =
+      floor(atk * extraMul);
+
+    atk =
+      floor(atk * (1 + critPct));
+
+    atk =
+      floor(atk * (1 + hitPhy));
+
+    atk =
+      floor(atk * (1000 / (1000 + hardDef)));
+
+    atk =
+      Math.max(0, atk - softDef);
+
+    atk =
+      floor(atk * (1 - dmgRed));
+
+    return Math.max(0, atk);
+  }
+
+  const dMin =
+    finalDamage(weaponMin);
+
+  const dAvg =
+    finalDamage(weaponAvg);
+
+  const dMax =
+    finalDamage(weaponMax);
+
+  const total =
+    dAvg * hits;
+
+  const ttk =
+    dAvg > 0
+    ? Math.ceil(hp / dAvg)
+    : Infinity;
+
+  const overkill =
+    total - hp;
+
+  const fmt = n =>
+    Number.isFinite(n)
+      ? n.toLocaleString(undefined,{
+          maximumFractionDigits:0
+        })
+      : "∞";
+
+  $("oAvg").textContent =
+    fmt(dAvg);
+
+  $("oRange").textContent =
+    `min ${fmt(dMin)} / max ${fmt(dMax)}`;
+
+  $("oTotal").textContent =
+    fmt(total);
+
+  $("oHits").textContent =
+    `${hits} hit${hits > 1 ? "s" : ""}`;
+
+  $("oTtk").textContent =
+    Number.isFinite(ttk)
+      ? ttk
+      : "∞";
+
+  $("oOverkill").textContent =
+    total >= hp
+      ? `overkill +${fmt(overkill)}`
+      : `need +${fmt(hp-total)}`;
+
+  /* ── ROL Total Damage — 4 output types (Melee/Range × Hit Physical/Critical) ──
+   * Independent of the full RO formula above: takes a flat base damage
+   * (default 1000) and multiplies it by the full % multiplier chain —
+   * ATK Melee/Range%, ATK Neutral%, Mid size%, ATK Demi Human%, ATK
+   * Type%, the selected skill's own multiplier, and either Hit Physical%
+   * or (the 1.4 base crit multiplier × Critical%) — so all four
+   * combinations can be compared side by side. */
+  const baseDmg        = f("baseDmg") || 0;
+  const atkNeutralMul  = 1 + atkNeutralTotal / 100;
+  const demiMul        = 1 + racePctDemiTotal / 100;
+  const hitPhyMul      = 1 + hitPhy;
+  const critMul        = 1 + critPct;
+  const CRIT_BASE      = 1.4;
+
+  const rolCommonMul = atkNeutralMul * midSizePct * demiMul * typePct * skillMod;
+
+  const meleeHitDmg  = baseDmg * meleePct * rolCommonMul * hitPhyMul;
+  const meleeCritDmg = baseDmg * meleePct * rolCommonMul * CRIT_BASE * critMul;
+  const rangeHitDmg  = baseDmg * rangePct * rolCommonMul * hitPhyMul;
+  const rangeCritDmg = baseDmg * rangePct * rolCommonMul * CRIT_BASE * critMul;
+
+  $("oMeleeHit").textContent  = fmt(meleeHitDmg);
+  $("oMeleeCrit").textContent = fmt(meleeCritDmg);
+  $("oRangeHit").textContent  = fmt(rangeHitDmg);
+  $("oRangeCrit").textContent = fmt(rangeCritDmg);
+
+  $("simpleFormula").innerHTML = [
+
+    `Base Damage = ${fmt(baseDmg)}`,
+
+    `ATK Melee% = ${((meleePct - 1) * 100).toFixed(0)}% → ×${meleePct.toFixed(2)}`,
+
+    `ATK Range% = ${((rangePct - 1) * 100).toFixed(0)}% → ×${rangePct.toFixed(2)}`,
+
+    `ATK Neutral% = ${round2(atkNeutralTotal)}% → ×${atkNeutralMul.toFixed(2)}`,
+
+    `Mid size% = ${((midSizePct - 1) * 100).toFixed(0)}% → ×${midSizePct.toFixed(2)}`,
+
+    `ATK Demi Human% = ${round2(racePctDemiTotal)}% → ×${demiMul.toFixed(2)}`,
+
+    `ATK Type% = ${((typePct - 1) * 100).toFixed(0)}% → ×${typePct.toFixed(2)}`,
+
+    `Skill Mod. = ${skillMod.toFixed(2)}× (${activeSkill.name})`,
+
+    `Hit Phy% = ${(hitPhy * 100).toFixed(0)}% → ×${hitPhyMul.toFixed(2)}`,
+
+    `Critical% = ${(critPct * 100).toFixed(0)}% → ×${critMul.toFixed(2)} (base crit ×${CRIT_BASE.toFixed(1)})`,
+
+    `Melee + Hit Physical = ${fmt(baseDmg)} × ${meleePct.toFixed(2)} × ${atkNeutralMul.toFixed(2)} × ${midSizePct.toFixed(2)} × ${demiMul.toFixed(2)} × ${typePct.toFixed(2)} × ${skillMod.toFixed(2)} × ${hitPhyMul.toFixed(2)} = ${fmt(meleeHitDmg)}`,
+
+    `Melee + Critical = ${fmt(baseDmg)} × ${meleePct.toFixed(2)} × ${atkNeutralMul.toFixed(2)} × ${midSizePct.toFixed(2)} × ${demiMul.toFixed(2)} × ${typePct.toFixed(2)} × ${skillMod.toFixed(2)} × ${CRIT_BASE.toFixed(1)} × ${critMul.toFixed(2)} = ${fmt(meleeCritDmg)}`,
+
+    `Range + Hit Physical = ${fmt(baseDmg)} × ${rangePct.toFixed(2)} × ${atkNeutralMul.toFixed(2)} × ${midSizePct.toFixed(2)} × ${demiMul.toFixed(2)} × ${typePct.toFixed(2)} × ${skillMod.toFixed(2)} × ${hitPhyMul.toFixed(2)} = ${fmt(rangeHitDmg)}`,
+
+    `Range + Critical = ${fmt(baseDmg)} × ${rangePct.toFixed(2)} × ${atkNeutralMul.toFixed(2)} × ${midSizePct.toFixed(2)} × ${demiMul.toFixed(2)} × ${typePct.toFixed(2)} × ${skillMod.toFixed(2)} × ${CRIT_BASE.toFixed(1)} × ${critMul.toFixed(2)} = ${fmt(rangeCritDmg)}`
+
+  ].map(x => "&gt; " + x).join("<br>");
+
+  $("formula").innerHTML = [
+
+    `Mode = ${getMode().toUpperCase()}`,
+
+    `Skill = ${activeSkill.name} (${activeSkill.desc})`,
+
+    `StatusATK = floor(${lvl}/4) + ${str} + floor(${dex}/5) + floor(${luk}/3) = ${sAtk}`,
+
+    `Weapon StatBonus = floor(${baseWeaponAtk} × ${str}/200) = ${statBonus}`,
+
+    `RefineATK = floor(${baseWeaponAtk} × 0.05 × ${refine}) = ${refineAtk}`,
+
+    `WeaponATK avg = ${weaponAvg}`,
+
+    `Skill multiplier = ${skillMod.toFixed(2)}x`,
+
+    `Mode multiplier = ${modeMod.toFixed(2)}x`,
+
+    `Final multiplier = ${atkMultiplier.toFixed(2)}x`
+
+  ].map(x => "&gt; " + x).join("<br>");
+
+  renderSkillFormula({lvl,str,dex,luk});
+
+  /* ── collection items summary (collection.csv, multi-tick checkboxes) ──
+   * formula-style box like eqSummary: one line per ticked item listing
+   * every non-zero stat, plus a Totals line summing all 21 stats. */
+  const ciBox = $("collectionItemsSummary");
+  const ciPieces = ci.pieces || [];
+
+  if(!ciPieces.length){
+
+    ciBox.textContent = "No collection items ticked.";
+
+  } else {
+
+    const parts = ciPieces.map(p =>
+      `&gt; <b>${p.name}</b>${p.position ? ` (${p.position})` : ""} — `
+      + (describeBits(p).join(", ") || "no stat bonus")
+    );
+
+    const totalBits = [];
+    STAT_DISPLAY_KEYS.forEach(k => {
+      if(ci[k]) totalBits.push(`${STAT_LABELS[k]} +${round2(ci[k])}`);
+    });
+
+    parts.push(`<br>&gt; <b>Totals:</b> ` + (totalBits.join(", ") || "no stat bonus"));
+
+    ciBox.innerHTML = parts.join("<br>");
+  }
+
+  /* ── pet item summary (pet.csv, choose-one select) ──
+   * formula-style box like ciBox: one line for the selected pet listing
+   * every non-zero stat, plus a Totals line summing all 21 stats. */
+  const piBox = $("petItemsSummary");
+  const piPieces = pi.pieces || [];
+
+  if(!piPieces.length){
+
+    piBox.textContent = "No pet selected.";
+
+  } else {
+
+    const parts = piPieces.map(p =>
+      `&gt; <b>${p.name}</b>${p.position ? ` (${p.position})` : ""} — `
+      + (describeBits(p).join(", ") || "no stat bonus")
+    );
+
+    const totalBits = [];
+    STAT_DISPLAY_KEYS.forEach(k => {
+      if(pi[k]) totalBits.push(`${STAT_LABELS[k]} +${round2(pi[k])}`);
+    });
+
+    parts.push(`<br>&gt; <b>Totals:</b> ` + (totalBits.join(", ") || "no stat bonus"));
+
+    piBox.innerHTML = parts.join("<br>");
+  }
+
+  /* group Skill Mod. bonuses by the skill they apply to (via each piece's
+   * skillId, resolved through skills.csv) instead of blindly summing them
+   * into one number — different pieces can boost entirely different
+   * skills (e.g. Counter Slash vs Tiger Cannon), so a flat total alone
+   * doesn't say which skill actually benefits. */
+  const skillModBySkill = {};
+  [...eq.pieces, ...ench.pieces, ...sh.pieces, ...co.pieces, ...crd.pieces].forEach(p => {
+    if(!p.skillMod) return;
+    const key = p.skillId || "";
+    skillModBySkill[key] = (skillModBySkill[key]||0) + p.skillMod;
+  });
+  const skillModNamesText = Object.keys(skillModBySkill)
+    .map(id => `${id ? skillDisplayName(id) : "Unspecified"} +${round2(skillModBySkill[id])}`)
+    .join(", ");
+
+  /* ── Total result cards (all values rounded to at most 2 decimal places) ── */
+  $("totalstatusATK").textContent = round2(sAtk);
+  $("totalequipATK").textContent = round2(baseWeaponAtk + equipAtk);
+  $("totalATKpercent").textContent = (atkPct * 100).toFixed(0) + "%";
+  $("totalMelee").textContent   = ((meleePct - 1) * 100).toFixed(0) + "%";
+  $("totalRange").textContent   = ((rangePct - 1) * 100).toFixed(0) + "%";
+  $("totalRaceDemi").textContent    = round2(racePctDemiTotal) + "%";
+  $("totalRaceNonDemi").textContent = round2(racePctNonDemiTotal) + "%";
+  $("totalMid").textContent     = ((midSizePct - 1) * 100).toFixed(0) + "%";
+  $("totalType").textContent    = ((typePct - 1) * 100).toFixed(0) + "%";
+  $("totalBoss").textContent    = round2(atkBossPctTotal) + "%";
+  $("totalAtkNeutral").textContent = round2(atkNeutralTotal);
+  $("totalCritDMG").textContent = (critPct * 100).toFixed(0) + "%";
+  $("totalCriRate").textContent = round2(criRateTotal) + "%";
+  $("totalHitphy").textContent  = (hitPhy * 100).toFixed(0) + "%";
+  $("totalPerfectHit").textContent = round2(perfectHitTotal);
+  $("totalDelay").textContent   = round2(delayPct) + "%";
+  $("totalFCT").textContent     = round2(fctPct);
+  $("totalSkillModStat").textContent = round2(skillModStatTotal);
+  $("totalSkillModNames").textContent = skillModNamesText;
+  $("totalCdReduction").textContent  = round2(cdReductionTotal) + "%";
+  $("totalDemiResist").textContent   = round2(demiResistTotal) + "%";
+  $("totalMidResist").textContent    = round2(midResistTotal) + "%";
+  $("totalNeutralResist").textContent = round2(neutralResistTotal) + "%";
+  $("totalRangeResist").textContent   = round2(rangeResistTotal) + "%";
+  $("totalMaxHpPct").textContent       = round2(maxHpPctTotal) + "%";
+
+  /* ── equipment summary (12 slots + inline enchants + shadow + costume + cards) ── */
+  const eqBox = $("eqSummary");
+
+  const allPieces = [
+    ...eq.pieces,
+    ...ench.pieces,
+    ...sh.pieces,
+    ...co.pieces,
+    ...crd.pieces
+  ];
+
+  const hasItems   = allPieces.length > 0;
+  const hasRefines = eq.refines && eq.refines.length > 0;
+
+  if(!hasItems && !hasRefines){
+
+    eqBox.textContent = "No equipment bonuses.";
+
+  } else if(hasItems){
+
+    const parts = [];
+
+    allPieces.forEach(p => {
+
+      /* describeBits() covers the full 21-stat schema (via STAT_DISPLAY_KEYS),
+       * so fields the old hand-picked list here silently dropped — Perfect
+       * HIT, ATK Boss%, Skill Mod., CD Reduction, the 4 resists, Max HP% —
+       * now show up correctly for every source (Equipment, enchants,
+       * Shadow, and Costume, including locked Costume Set pieces). */
+      const bits = describeBits(p);
+
+      /* append the resolved skill name (via skills.csv) to the Skill
+       * Mod. bit, e.g. "Skill Mod. +10" → "Skill Mod. +10 (Counter Slash)" */
+      if(p.skillMod && p.skillId){
+        const skillBitIdx = bits.findIndex(b => b.startsWith(STAT_LABELS.skillMod));
+        if(skillBitIdx >= 0) bits[skillBitIdx] += ` (${skillDisplayName(p.skillId)})`;
+      }
+
+      if(Array.isArray(p.positions) && p.positions.length > 1){
+        bits.push(`(set bonus: ${p.positions.length} pieces)`);
+      }
+
+      parts.push(
+        `&gt; <b>${p.name}</b> — ${bits.join(", ") || "no stat bonus"}`
+        + (p.note ? `<br>&nbsp;&nbsp;&nbsp;<i>${p.note}</i>` : "")
+      );
+    });
+
+    /* tier + refinement breakdown */
+    if(eq.refines && eq.refines.length){
+
+      parts.push("<br>&gt; <b>Tier × Refinement:</b>");
+
+      eq.refines.forEach(r => {
+        parts.push(
+          `&nbsp;&nbsp;&nbsp;${r.item} — Tier ${r.tier} +${r.ref} `
+          + `→ ATK +${round2(r.atk)}, Size% +${round2(r.midSizePct)}, ATK% +${round2(r.atkPct)} `
+          + `<span style="opacity:0.6">(ATK%/ref)</span>`
+        );
+      });
+    }
+
+    /* same fix for the Totals line — sum every STAT_DISPLAY_KEYS field
+     * across the 4 Equipment-panel sources instead of a hand-picked subset */
+    const eqTotals = newBonus();
+    addBonus(eqTotals, eq);
+    addBonus(eqTotals, ench);
+    addBonus(eqTotals, sh);
+    addBonus(eqTotals, co);
+    addBonus(eqTotals, crd);
+
+    const eqTotalBits = [`ATK +${round2(equipAtk)}`];
+    STAT_DISPLAY_KEYS.forEach(k => {
+      if(k === "atk") return; /* already shown above using equipAtk (includes conditional bonuses) */
+      if(eqTotals[k]) eqTotalBits.push(`${STAT_LABELS[k]} +${round2(eqTotals[k])}`);
+    });
+
+    parts.push(`<br>&gt; <b>Totals:</b> ` + eqTotalBits.join(", "));
+
+    eqBox.innerHTML = parts.join("<br>");
+
+  } else {
+
+    /* refinements only — no items equipped */
+    const lines = ["<b>Tier × Refinement:</b>"];
+
+    eq.refines.forEach(r => {
+      lines.push(
+        `&gt; ${r.item} — Tier ${r.tier} +${r.ref} `
+        + `→ ATK +${round2(r.atk)}, ATK% +${round2(r.atkPct)}, Size% +${round2(r.midSizePct)}`
+      );
+    });
+
+    eqBox.innerHTML = lines.join("<br>");
+  }
+}
+
+ids.forEach(id => {
+
+  const el = $(id);
+
+  if(el){
+
+    el.addEventListener("input",calc);
+    el.addEventListener("change",calc);
+  }
+});
+
+/* mid_low slot sync for the middle/lower headgear dropdowns */
+["eqHeadM","eqHeadL"].forEach(id => {
+  const el = $(id);
+  if(el){
+    el.addEventListener("change", () => {
+      syncMidLow(id);
+      calc();
+    });
+  }
+});
+
+/* headUpper+armor combo sync (e.g. Spider Seduction + Upgrade Hero) */
+["eqHeadU","eqArmor"].forEach(id => {
+  const el = $(id);
+  if(el){
+    el.addEventListener("change", () => {
+      syncHeadArmorCombo(id);
+      calc();
+    });
+  }
+});
+
+/* costume combo sync (Upper+Middle+Lower / +Garment Sets) */
+COSTUME_SLOTS.forEach(id => {
+  const el = $(id);
+  if(el){
+    el.addEventListener("change", () => {
+      syncCostumeCombo(id);
+      calc();
+    });
+  }
+});
+
+/* shadow combo sync (e.g. +10 Slash Weapon+Armor+Shoes) */
+SHADOW_SLOTS.forEach(id => {
+  const el = $(id);
+  if(el){
+    el.addEventListener("change", () => {
+      syncShadowCombo(id);
+      calc();
+    });
+  }
+});
+
+/* card combo sync (e.g. a two-piece card set spanning Armor+Garment) */
+CARD_SLOTS.forEach(id => {
+  const el = $(id);
+  if(el){
+    el.addEventListener("change", () => {
+      syncCardCombo(id);
+      calc();
+    });
+  }
+});
+
+/* multi-slot enchant lock (e.g. Champion Glory, footgear slot2_3_4) */
+ENCHANT_SLOT_GROUPS.forEach(group => {
+  group.forEach(id => {
+    const el = $(id);
+    if(el){
+      el.addEventListener("change", () => {
+        syncEnchantCombo(id);
+        calc();
+      });
+    }
+  });
+});
+$("eqWeapon").addEventListener("change", () => {
+
+  syncWeaponATK();
+
+  calc();
+});
+$("eqWeapon_ref").addEventListener("change", () => {
+
+  syncRefinement();
+
+  calc();
+});
+syncWeaponATK();
+syncRefinement();
+
+calc();
+
+/* ── reload every *.csv file in one shot ──
+ * Only works when the page is served over http(s) — browsers block
+ * fetch() of local files when ro.html is opened directly (file://), in
+ * which case every loader below silently keeps the embedded fallback
+ * data baked into items.js instead (see each loader's own catch block).
+ * Run e.g. `python3 -m http.server` in this folder and open
+ * http://localhost:8000/ro.html to make this button (and the automatic
+ * page-load reload) actually pick up CSV edits without needing to ask
+ * Claude to re-check them by hand. */
+async function reloadAllData(){
+
+  const btn    = $("reloadDataBtn");
+  const status = $("reloadDataStatus");
+
+  if(btn) btn.disabled = true;
+  if(status) status.textContent = "Reloading…";
+
+  await Promise.all([
+    loadItemsCSV(),
+    loadCardCSV(),
+    loadCollectionItemsCSV(),
+    loadPetItemsCSV(),
+    loadAllEnchantGroups(),
+    loadShadowCSV(),
+    loadCostumeCSV(),
+    loadSkillsCSV()
+  ]);
+
+  calc();
+
+  if(btn) btn.disabled = false;
+
+  if(status){
+    const usingFile = location.protocol === "file:";
+    status.textContent = usingFile
+      ? "Reloaded at " + new Date().toLocaleTimeString()
+      + " — but this page was opened as a local file, so fetch() is "
+      + "blocked and embedded fallback data was used instead. Serve this "
+      + "folder over http(s) for CSV edits to actually take effect."
+      : "Reloaded at " + new Date().toLocaleTimeString();
+  }
+}
+
+const reloadBtn = $("reloadDataBtn");
+if(reloadBtn) reloadBtn.addEventListener("click", reloadAllData);
+
+/* initial load on page open */
+reloadAllData();
+
+})();
+
+</script>
+
+</body>
+</html>
