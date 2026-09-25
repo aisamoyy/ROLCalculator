@@ -285,6 +285,8 @@ header{
     <select id="cardHeadU"></select>
     <label>Enchant</label>
     <select id="enchHeadU"></select>
+    <label>World Energy</label>
+    <select id="enchHeadUWE"></select>
   </div>
 
   <h3 class="subhead">2. Middle Headgear</h3>
@@ -626,8 +628,8 @@ header{
 </div>
 </section>
 
-<!-- SKILL -->
-<section class="panel">
+<!-- SKILL — hidden from the page (inputs kept so the script still runs) -->
+<section class="panel" style="display:none">
 
 <h2>Skill</h2>
 
@@ -685,8 +687,8 @@ header{
 
 </section>
 
-<!-- TARGET -->
-<section class="panel">
+<!-- TARGET — hidden from the page (inputs kept so the script still runs) -->
+<section class="panel" style="display:none">
 
 <h2>Target</h2>
 
@@ -708,8 +710,8 @@ header{
 
 </section>
 
-<!-- RESULT -->
-<section class="panel">
+<!-- RESULT — hidden from the page (inputs kept so the script still runs) -->
+<section class="panel" style="display:none">
 
 <h2>Damage Result</h2>
 
@@ -832,6 +834,7 @@ const CARD_TYPE = {
  * Each select maps to { pool: window[pool] key, key: normalized CSV slot key } */
 const ENCHANT_SELECTS = {
   enchHeadU:     { pool:"ENCHANT_HEADGEAR",  key:"enchant_head" },
+  enchHeadUWE:   { pool:"ENCHANT_HEADGEAR",  key:"enchant_world_energy" },
   enchWeapon3:   { pool:"ENCHANT_WEAPON",    key:"slot3" },
   enchWeapon4:   { pool:"ENCHANT_WEAPON",    key:"slot4" },
   enchArmor3:    { pool:"ENCHANT_ARMOR",     key:"slot3" },
